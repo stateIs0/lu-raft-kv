@@ -1,0 +1,7 @@
+# Created by .ignore support plugin (hsz.mobi)
+/target
+lu-raft/.idea
+*.iml
+/rocksDB-raft
+.idea
+target/
