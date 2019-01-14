@@ -2,7 +2,7 @@
 
 这是一个 Java 版本的 Raft(CP) KV  分布式存储实现. 可用于 Raft 初学者深入学习 Raft 协议. 
 
-相关文章（http://thinkinjava.cn/2019/01/lu-raft-kv/）
+相关文章 http://thinkinjava.cn/2019/01/lu-raft-kv
 
 为了尽可能的保证数据一致性，该实现的"性能"没有基于 AP 的实现好。
 
