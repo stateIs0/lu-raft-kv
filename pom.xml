@@ -10,7 +10,7 @@
   <version>1.0-RELEASE</version>
 
   <modules>
-    <module>lu-raft</module>
+    <module>lu-raft-kv</module>
   </modules>
 
   <dependencies>
