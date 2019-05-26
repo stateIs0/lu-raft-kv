@@ -25,7 +25,9 @@
       <artifactId>guava</artifactId>
       <version>23.0</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni -->
+    <!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni
+     http://172.20.61.182:18326/admin/browse.jsp?JMSDestination=Consumer.foot_stone_test.VirtualTopic.foot_stone_flow_change
+     -->
     <dependency>
       <groupId>org.rocksdb</groupId>
       <artifactId>rocksdbjni</artifactId>
