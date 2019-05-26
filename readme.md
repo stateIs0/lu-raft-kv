@@ -2,13 +2,15 @@
 
 这是一个 Java 版本的 Raft(CP) KV  分布式存储实现. 可用于 Raft 初学者深入学习 Raft 协议. 
 
+相关文章 http://thinkinjava.cn/2019/01/12/2019-01-12-lu-raft-kv/
+
 为了尽可能的保证数据一致性，该实现的"性能"没有基于 AP 的实现好。
 
 目前实现了 Raft 4 大核心功能的其中 2 个功能.
 
 1. leader 选举
 2. 日志复制
-3. 成员变更
+3. 成员变更(未测试)
 4. 快照压缩(未实现)
 
 ## Design 
@@ -55,3 +57,10 @@
 本人微信：
 
 ![image](https://user-images.githubusercontent.com/24973360/50372024-5f975d00-0601-11e9-8247-139e145b1123.png)
+
+## Acknowledgments
+
+感谢 SOFA-Bolt 提供 RPC 网络框架 https://github.com/alipay/sofa-bolt
+
+感谢 rocksDB 提供 KV 存储 https://github.com/facebook/rocksdb
+
