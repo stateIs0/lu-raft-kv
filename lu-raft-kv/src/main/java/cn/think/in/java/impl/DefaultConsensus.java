@@ -67,11 +67,11 @@ public class DefaultConsensus implements Consensus {
             if ((StringUtil.isNullOrEmpty(node.getVotedFor()) || node.getVotedFor().equals(param.getCandidateId()))) {
 
                 if (node.getLogModule().getLast() != null) {
-                    // 对方没有自己新
+                    // 先比较term，term大的优先级大
                     if (node.getLogModule().getLast().getTerm() > param.getLastLogTerm()) {
                         return RvoteResult.fail();
                     }
-                    // 对方没有自己新
+                    // term >= 自己，再比较lastLogIndex
                     if (node.getLogModule().getLastIndex() > param.getLastLogIndex()) {
                         return RvoteResult.fail();
                     }

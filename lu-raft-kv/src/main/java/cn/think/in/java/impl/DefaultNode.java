@@ -571,7 +571,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
             LOGGER.info("peerList size : {}, peer list content : {}", peers.size(), peers);
 
-            // 发送请求
+            // 向所有的同伴 发送请求
             for (Peer peer : peers) {
 
                 futureArrayList.add(RaftThreadPool.submit(new Callable() {
@@ -724,23 +724,20 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                     param,
                     peer.getAddr());
 
-                RaftThreadPool.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Response response = getRpcClient().send(request);
-                            AentryResult aentryResult = (AentryResult) response.getResult();
-                            long term = aentryResult.getTerm();
+                RaftThreadPool.execute(() -> {
+                    try {
+                        Response response = getRpcClient().send(request);
+                        AentryResult aentryResult = (AentryResult) response.getResult();
+                        long term = aentryResult.getTerm();
 
-                            if (term > currentTerm) {
-                                LOGGER.error("self will become follower, he's term : {}, my term : {}", term, currentTerm);
-                                currentTerm = term;
-                                votedFor = "";
-                                status = NodeStatus.FOLLOWER;
-                            }
-                        } catch (Exception e) {
-                            LOGGER.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
+                        if (term > currentTerm) {
+                            LOGGER.error("self will become follower, he's term : {}, my term : {}", term, currentTerm);
+                            currentTerm = term;
+                            votedFor = "";
+                            status = NodeStatus.FOLLOWER;
                         }
+                    } catch (Exception e) {
+                        LOGGER.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
                     }
                 }, false);
             }
