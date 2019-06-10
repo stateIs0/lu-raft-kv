@@ -331,6 +331,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
             // 返回成功.
             return ClientKVAck.ok();
         } else {
+            // 回滚已经提交的日志.
             logModule.removeOnStartIndex(logEntry.getIndex());
             LOGGER.warn("fail apply local state  machine,  logEntry info : {}", logEntry);
             // TODO 不应用到状态机,但已经记录到日志中.由定时任务从重试队列取出,然后重复尝试,当达到条件时,应用到状态机.
