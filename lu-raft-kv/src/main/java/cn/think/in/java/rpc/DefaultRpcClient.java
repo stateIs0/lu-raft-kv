@@ -13,8 +13,7 @@ import cn.think.in.java.exception.RaftRemotingException;
  */
 public class DefaultRpcClient implements RpcClient {
 
-    public static Logger logger = LoggerFactory
-        .getLogger(DefaultRpcClient.class.getName());
+    public static Logger logger = LoggerFactory.getLogger(DefaultRpcClient.class.getName());
 
     private final static com.alipay.remoting.rpc.RpcClient CLIENT = new com.alipay.remoting.rpc.RpcClient();
     static {
@@ -24,9 +23,14 @@ public class DefaultRpcClient implements RpcClient {
 
     @Override
     public Response send(Request request) {
+        return send(request, 200000);
+    }
+
+    @Override
+    public Response send(Request request, int timeout) {
         Response result = null;
         try {
-            result = (Response) CLIENT.invokeSync(request.getUrl(), request, 200000);
+            result = (Response) CLIENT.invokeSync(request.getUrl(), request, timeout);
         } catch (RemotingException e) {
             e.printStackTrace();
             logger.info("rpc RaftRemotingException ");
