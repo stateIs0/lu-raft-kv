@@ -37,8 +37,7 @@ public class DefaultRpcClient implements RpcClient {
             throw new RaftRemotingException();
         } catch (InterruptedException e) {
             e.printStackTrace();
-        } finally {
-            return result;
         }
+        return (result);
     }
 }

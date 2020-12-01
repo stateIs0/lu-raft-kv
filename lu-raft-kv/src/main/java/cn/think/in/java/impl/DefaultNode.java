@@ -572,7 +572,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
             LOGGER.info("peerList size : {}, peer list content : {}", peers.size(), peers);
 
-            // 向所有的同伴 发送请求
+            // 发送请求
             for (Peer peer : peers) {
 
                 futureArrayList.add(RaftThreadPool.submit(new Callable() {
@@ -657,7 +657,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
             int success = success2.get();
             LOGGER.info("node {} maybe become leader , success count = {} , status : {}", peerSet.getSelf(), success, NodeStatus.Enum.value(status));
-            // 如果投票期间,有其他合法的Leader(在RPCServer.hangdlerRequest()中处理的req) 发送appendEntry, 就可能变成 follower
+            // 如果投票期间,有其他服务器发送 appendEntry , 就可能变成 follower ,这时,应该停止.
             if (status == NodeStatus.FOLLOWER) {
                 return;
             }
@@ -725,20 +725,23 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                     param,
                     peer.getAddr());
 
-                RaftThreadPool.execute(() -> {
-                    try {
-                        Response response = getRpcClient().send(request);
-                        AentryResult aentryResult = (AentryResult) response.getResult();
-                        long term = aentryResult.getTerm();
+                RaftThreadPool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Response response = getRpcClient().send(request);
+                            AentryResult aentryResult = (AentryResult) response.getResult();
+                            long term = aentryResult.getTerm();
 
-                        if (term > currentTerm) {
-                            LOGGER.error("self will become follower, he's term : {}, my term : {}", term, currentTerm);
-                            currentTerm = term;
-                            votedFor = "";
-                            status = NodeStatus.FOLLOWER;
+                            if (term > currentTerm) {
+                                LOGGER.error("self will become follower, he's term : {}, my term : {}", term, currentTerm);
+                                currentTerm = term;
+                                votedFor = "";
+                                status = NodeStatus.FOLLOWER;
+                            }
+                        } catch (Exception e) {
+                            LOGGER.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
                         }
-                    } catch (Exception e) {
-                        LOGGER.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
                     }
                 }, false);
             }
