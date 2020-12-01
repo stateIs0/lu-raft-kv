@@ -42,23 +42,21 @@ public class DefaultStateMachine implements StateMachine {
 
 
     private DefaultStateMachine() {
-        synchronized (this) {
-            try {
-                File file = new File(stateMachineDir);
-                boolean success = false;
-                if (!file.exists()) {
-                    success = file.mkdirs();
-                }
-                if (success) {
-                    LOGGER.warn("make a new dir : " + stateMachineDir);
-                }
-                Options options = new Options();
-                options.setCreateIfMissing(true);
-                machineDb = RocksDB.open(options, stateMachineDir);
-
-            } catch (RocksDBException e) {
-                LOGGER.info(e.getMessage());
+        try {
+            File file = new File(stateMachineDir);
+            boolean success = false;
+            if (!file.exists()) {
+                success = file.mkdirs();
             }
+            if (success) {
+                LOGGER.warn("make a new dir : " + stateMachineDir);
+            }
+            Options options = new Options();
+            options.setCreateIfMissing(true);
+            machineDb = RocksDB.open(options, stateMachineDir);
+
+        } catch (RocksDBException e) {
+            LOGGER.info(e.getMessage());
         }
     }
 
