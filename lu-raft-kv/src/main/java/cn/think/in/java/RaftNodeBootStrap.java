@@ -5,6 +5,7 @@ import java.util.Arrays;
 import com.google.common.collect.Lists;
 
 import cn.think.in.java.common.NodeConfig;
+import cn.think.in.java.constant.StateMachineSaveType;
 import cn.think.in.java.impl.DefaultNode;
 
 /**
@@ -30,7 +31,7 @@ public class RaftNodeBootStrap {
 
         // 其他节点地址
         config.setPeerAddrs(Arrays.asList(peerAddr));
-
+        config.setStateMachineSaveType(StateMachineSaveType.REDIS);
         Node node = DefaultNode.getInstance();
         node.setConfig(config);
 
