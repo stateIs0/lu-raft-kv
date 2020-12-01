@@ -11,8 +11,8 @@ import cn.think.in.java.impl.RedisStateMachine;
  * @author rensailong
  */
 public enum StateMachineSaveType {
-    REDIS("redis", "redis存储", DefaultStateMachine.getInstance()),
-    ROCKS_DB("RocksDB", "RocksDB本地存储", RedisStateMachine.getInstance())
+    REDIS("redis", "redis存储", RedisStateMachine.getInstance()),
+    ROCKS_DB("RocksDB", "RocksDB本地存储", DefaultStateMachine.getInstance())
     ;
 
     public StateMachine getStateMachine() {
