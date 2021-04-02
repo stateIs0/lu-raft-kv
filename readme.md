@@ -50,14 +50,6 @@
 7. 关闭所有节点, 读取 RocksDB 验证数据一致性.
 
 
-## And
-
-欢迎提交 RP, issue. 加微信一起探讨 Raft。
-
-本人微信：
-
-![image](https://user-images.githubusercontent.com/24973360/50372024-5f975d00-0601-11e9-8247-139e145b1123.png)
-
 ## Acknowledgments
 
 感谢 SOFA-Bolt 提供 RPC 网络框架 https://github.com/alipay/sofa-bolt
