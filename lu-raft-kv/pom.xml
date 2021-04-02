@@ -12,12 +12,22 @@
 
   <artifactId>lu-raft-kv</artifactId>
 
+  <properties>
+      <jedis-jar.version>2.7.1</jedis-jar.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>${jedis-jar.version}</version>
     </dependency>
 
     <dependency>
