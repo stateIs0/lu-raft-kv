@@ -3,7 +3,6 @@ package raft.client;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alipay.remoting.exception.RemotingException;
 import com.google.common.collect.Lists;
 
 import org.slf4j.Logger;
@@ -17,7 +16,6 @@ import cn.think.in.java.rpc.Response;
 import cn.think.in.java.rpc.RpcClient;
 
 /**
- *
  * @author 莫那·鲁道
  */
 public class RaftClient {
@@ -25,12 +23,12 @@ public class RaftClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(RaftClient.class);
 
 
-    private final static RpcClient client = new DefaultRpcClient();
+    private final static RpcClient CLIENT = new DefaultRpcClient();
 
     static String addr = "localhost:8778";
     static List<String> list = Lists.newArrayList("localhost:8777", "localhost:8778", "localhost:8779");
 
-    public static void main(String[] args) throws RemotingException, InterruptedException {
+    public static void main(String[] args) throws InterruptedException {
 
         AtomicLong count = new AtomicLong(3);
 
@@ -41,16 +39,16 @@ public class RaftClient {
 
                 ClientKVReq obj = ClientKVReq.newBuilder().key("hello:" + i).value("world:" + i).type(ClientKVReq.PUT).build();
 
-                Request<ClientKVReq> r = new Request<>();
+                Request r = new Request();
                 r.setObj(obj);
                 r.setUrl(addr);
                 r.setCmd(Request.CLIENT_REQ);
                 Response<String> response;
                 try {
-                    response = client.send(r);
+                    response = CLIENT.send(r, String.class);
                 } catch (Exception e) {
                     r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-                    response = client.send(r);
+                    response = CLIENT.send(r, String.class);
                 }
 
                 LOGGER.info("request content : {}, url : {}, put response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response.getResult());
@@ -66,10 +64,10 @@ public class RaftClient {
 
                 Response<LogEntry> response2;
                 try {
-                    response2 = client.send(r);
+                    response2 = CLIENT.send(r, LogEntry.class);
                 } catch (Exception e) {
                     r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-                    response2 = client.send(r);
+                    response2 = CLIENT.send(r, LogEntry.class);
                 }
 
                 LOGGER.info("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2.getResult());

@@ -3,12 +3,11 @@ package cn.think.in.java.rpc;
 import cn.think.in.java.LifeCycle;
 
 /**
- *
  * @author 莫那·鲁道
  */
 public interface RpcClient extends LifeCycle {
 
-    Response send(Request request);
+    <R> Response<R> send(Request request, Class<R> c);
 
-    Response send(Request request, int timeout);
+    <R> Response<R> send(Request request, Class<R> c, int timeout);
 }

@@ -24,11 +24,11 @@ public class Response<T> implements Serializable {
         setResult((T) builder.result);
     }
 
-    public static Response ok() {
+    public static Response<String> ok() {
         return new Response<>("ok");
     }
 
-    public static Response fail() {
+    public static Response<String> fail() {
         return new Response<>("fail");
     }
 
@@ -56,7 +56,7 @@ public class Response<T> implements Serializable {
             return this;
         }
 
-        public Response build() {
+        public Response<?> build() {
             return new Response(this);
         }
     }

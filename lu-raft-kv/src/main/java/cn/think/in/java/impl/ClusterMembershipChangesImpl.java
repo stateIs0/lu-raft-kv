@@ -12,7 +12,6 @@ import cn.think.in.java.rpc.Request;
 import cn.think.in.java.rpc.Response;
 
 /**
- *
  * 集群配置变更接口默认实现.
  *
  * @author 莫那·鲁道
@@ -28,8 +27,11 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
         this.node = node;
     }
 
-    /** 必须是同步的,一次只能添加一个节点
-     * @param newPeer*/
+    /**
+     * 必须是同步的,一次只能添加一个节点
+     *
+     * @param newPeer
+     */
     @Override
     public synchronized Result addPeer(Peer newPeer) {
         // 已经存在
@@ -50,16 +52,16 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
                 }
             }
 
-            for (Peer item : node.peerSet.getPeersWithOutSelf()) {
+            for (Peer ignore : node.peerSet.getPeersWithOutSelf()) {
                 // TODO 同步到其他节点.
                 Request request = Request.newBuilder()
-                    .cmd(Request.CHANGE_CONFIG_ADD)
-                    .url(newPeer.getAddr())
-                    .obj(newPeer)
-                    .build();
+                        .cmd(Request.CHANGE_CONFIG_ADD)
+                        .url(newPeer.getAddr())
+                        .obj(newPeer)
+                        .build();
 
-                Response response = node.rpcClient.send(request);
-                Result result = (Result) response.getResult();
+                Response<Result> response = node.rpcClient.send(request, Result.class);
+                Result result = response.getResult();
                 if (result != null && result.getStatus() == Result.Status.SUCCESS.getCode()) {
                     LOGGER.info("replication config success, peer : {}, newServer : {}", newPeer, newPeer);
                 } else {
@@ -73,8 +75,11 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
     }
 
 
-    /** 必须是同步的,一次只能删除一个节点
-     * @param oldPeer*/
+    /**
+     * 必须是同步的,一次只能删除一个节点
+     *
+     * @param oldPeer
+     */
     @Override
     public synchronized Result removePeer(Peer oldPeer) {
         node.peerSet.getPeersWithOutSelf().remove(oldPeer);

@@ -17,7 +17,6 @@ import cn.think.in.java.rpc.Response;
 import cn.think.in.java.rpc.RpcClient;
 
 /**
- *
  * @author 莫那·鲁道
  */
 public class RaftClient3 {
@@ -42,13 +41,13 @@ public class RaftClient3 {
 
             ClientKVReq obj = ClientKVReq.newBuilder().key("hello:" + keyNum).value("world:" + keyNum).type(ClientKVReq.PUT).build();
 
-            Request<ClientKVReq> r = new Request<>();
+            Request r = new Request();
             r.setObj(obj);
             r.setUrl(addr);
             r.setCmd(Request.CLIENT_REQ);
             Response<String> response = null;
             try {
-                response = client.send(r);
+                response = client.send(r, String.class);
             } catch (Exception e) {
             }
 
@@ -65,10 +64,10 @@ public class RaftClient3 {
 
             Response<LogEntry> response2;
             try {
-                response2 = client.send(r);
+                response2 = client.send(r, LogEntry.class);
             } catch (Exception e) {
                 r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-                response2 = client.send(r);
+                response2 = client.send(r, LogEntry.class);
             }
 
             if (response.getResult() == null) {

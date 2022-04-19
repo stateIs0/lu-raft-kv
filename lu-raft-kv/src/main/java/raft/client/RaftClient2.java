@@ -33,7 +33,7 @@ public class RaftClient2 {
         for (int i = 3; ; i++) {
 
             try {
-                Request<ClientKVReq> r = new Request<>();
+                Request r = new Request();
 
                 int size = list2.size();
 
@@ -44,7 +44,7 @@ public class RaftClient2 {
                 r.setObj(obj);
                 r.setCmd(Request.CLIENT_REQ);
 
-                Response<LogEntry> response2 = client.send(r);
+                Response<LogEntry> response2 = client.send(r, LogEntry.class);
 
                 LOGGER.info("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2.getResult());
             } catch (Exception e) {
