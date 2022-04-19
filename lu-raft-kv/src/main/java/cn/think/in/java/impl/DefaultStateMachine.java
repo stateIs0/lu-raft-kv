@@ -16,7 +16,6 @@ import cn.think.in.java.entity.Command;
 import cn.think.in.java.entity.LogEntry;
 
 /**
- *
  * 默认的状态机实现.
  *
  * @author 莫那·鲁道
@@ -32,29 +31,28 @@ public class DefaultStateMachine implements StateMachine {
 
 
     private DefaultStateMachine() {
+        dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
+
+        if (stateMachineDir == null) {
+            stateMachineDir = dbDir + "/stateMachine";
+        }
+        RocksDB.loadLibrary();
+
+        File file = new File(stateMachineDir);
+        boolean success = false;
+
+        if (!file.exists()) {
+            success = file.mkdirs();
+        }
+        if (success) {
+            log.warn("make a new dir : " + stateMachineDir);
+        }
+        Options options = new Options();
+        options.setCreateIfMissing(true);
         try {
-            if (dbDir == null) {
-                dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
-            }
-            if (stateMachineDir == null) {
-                stateMachineDir =dbDir + "/stateMachine";
-            }
-            RocksDB.loadLibrary();
-
-            File file = new File(stateMachineDir);
-            boolean success = false;
-            if (!file.exists()) {
-                success = file.mkdirs();
-            }
-            if (success) {
-                log.warn("make a new dir : " + stateMachineDir);
-            }
-            Options options = new Options();
-            options.setCreateIfMissing(true);
             machineDb = RocksDB.open(options, stateMachineDir);
-
         } catch (RocksDBException e) {
-            log.info(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
