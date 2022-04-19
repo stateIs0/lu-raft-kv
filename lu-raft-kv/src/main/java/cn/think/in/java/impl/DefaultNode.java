@@ -65,7 +65,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     public PeerSet peerSet;
 
-
+    volatile boolean running = false;
 
     /* ============ 所有服务器上持久存在的 ============= */
 
@@ -98,11 +98,9 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     /* ============================== */
 
-    public volatile boolean started;
-
     public NodeConfig config;
 
-    public static RpcService RPC_SERVER;
+    public RpcService rpcServer;
 
     public RpcClient rpcClient = new DefaultRpcClient();
 
@@ -133,31 +131,22 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     @Override
     public void init() throws Throwable {
-        if (started) {
-            return;
+        running = true;
+        rpcServer.init();
+
+        consensus = new DefaultConsensus(this);
+        delegate = new ClusterMembershipChangesImpl(this);
+
+        RaftThreadPool.scheduleWithFixedDelay(heartBeatTask, 500);
+        RaftThreadPool.scheduleAtFixedRate(electionTask, 6000, 500);
+        RaftThreadPool.execute(replicationFailQueueConsumer);
+
+        LogEntry logEntry = logModule.getLast();
+        if (logEntry != null) {
+            currentTerm = logEntry.getTerm();
         }
-        synchronized (this) {
-            if (started) {
-                return;
-            }
-            RPC_SERVER.init();
 
-            consensus = new DefaultConsensus(this);
-            delegate = new ClusterMembershipChangesImpl(this);
-
-            RaftThreadPool.scheduleWithFixedDelay(heartBeatTask, 500);
-            RaftThreadPool.scheduleAtFixedRate(electionTask, 6000, 500);
-            RaftThreadPool.execute(replicationFailQueueConsumer);
-
-            LogEntry logEntry = logModule.getLast();
-            if (logEntry != null) {
-                currentTerm = logEntry.getTerm();
-            }
-
-            started = true;
-
-            log.info("start success, selfId : {} ", peerSet.getSelf());
-        }
+        log.info("start success, selfId : {} ", peerSet.getSelf());
     }
 
     @Override
@@ -175,7 +164,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             }
         }
 
-        RPC_SERVER = new DefaultRpcServiceImpl(config.selfPort, this);
+        rpcServer = new DefaultRpcServiceImpl(config.selfPort, this);
     }
 
 
@@ -192,11 +181,9 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
         }
 
         return consensus.appendEntries(param);
-
     }
 
 
-    @SuppressWarnings("unchecked")
     @Override
     public ClientKVAck redirect(ClientKVReq request) {
         Request r = Request.newBuilder()
@@ -453,10 +440,9 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
         @Override
         public void run() {
-            for (; ; ) {
-
+            while (running) {
                 try {
-                    ReplicationFailModel model = replicationFailQueue.take();
+                    ReplicationFailModel model = replicationFailQueue.poll(1000, MILLISECONDS);
                     if (status != LEADER) {
                         // 应该清空?
                         replicationFailQueue.clear();
@@ -502,9 +488,10 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     @Override
     public void destroy() throws Throwable {
-        RPC_SERVER.destroy();
+        rpcServer.destroy();
         stateMachine.destroy();
         rpcClient.destroy();
+        running = false;
         log.info("destroy success");
     }
 
@@ -553,35 +540,32 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             // 发送请求
             for (Peer peer : peers) {
 
-                futureArrayList.add(RaftThreadPool.submit(new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        long lastTerm = 0L;
-                        LogEntry last = logModule.getLast();
-                        if (last != null) {
-                            lastTerm = last.getTerm();
-                        }
+                futureArrayList.add(RaftThreadPool.submit(() -> {
+                    long lastTerm = 0L;
+                    LogEntry last = logModule.getLast();
+                    if (last != null) {
+                        lastTerm = last.getTerm();
+                    }
 
-                        RvoteParam param = RvoteParam.newBuilder().
-                                term(currentTerm).
-                                candidateId(peerSet.getSelf().getAddr()).
-                                lastLogIndex(LongConvert.convert(logModule.getLastIndex())).
-                                lastLogTerm(lastTerm).
-                                build();
+                    RvoteParam param = RvoteParam.newBuilder().
+                            term(currentTerm).
+                            candidateId(peerSet.getSelf().getAddr()).
+                            lastLogIndex(LongConvert.convert(logModule.getLastIndex())).
+                            lastLogTerm(lastTerm).
+                            build();
 
-                        Request request = Request.newBuilder()
-                                .cmd(Request.R_VOTE)
-                                .obj(param)
-                                .url(peer.getAddr())
-                                .build();
+                    Request request = Request.newBuilder()
+                            .cmd(Request.R_VOTE)
+                            .obj(param)
+                            .url(peer.getAddr())
+                            .build();
 
-                        try {
-                            Response<RvoteResult> response = getRpcClient().send(request, RvoteResult.class);
-                            return response;
-                        } catch (RaftRemotingException e) {
-                            log.error("ElectionTask RPC Fail , URL : " + request.getUrl());
-                            return null;
-                        }
+                    try {
+                        Response<RvoteResult> response = getRpcClient().send(request, RvoteResult.class);
+                        return response;
+                    } catch (RaftRemotingException e) {
+                        log.error("ElectionTask RPC Fail , URL : " + request.getUrl());
+                        return null;
                     }
                 }));
             }
@@ -591,35 +575,31 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
             log.info("futureArrayList.size() : {}", futureArrayList.size());
             // 等待结果.
-            for (Future<Object> future : futureArrayList) {
-                RaftThreadPool.submit(new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        try {
-
-                            @SuppressWarnings("unchecked")
-                            Response<RvoteResult> response = (Response<RvoteResult>) future.get(3000, MILLISECONDS);
-                            if (response == null) {
-                                return -1;
-                            }
-                            boolean isVoteGranted = response.getResult().isVoteGranted();
-
-                            if (isVoteGranted) {
-                                success2.incrementAndGet();
-                            } else {
-                                // 更新自己的任期.
-                                long resTerm = response.getResult().getTerm();
-                                if (resTerm >= currentTerm) {
-                                    currentTerm = resTerm;
-                                }
-                            }
-                            return 0;
-                        } catch (Exception e) {
-                            log.error("future.get exception , e : ", e);
+            for (Future future : futureArrayList) {
+                RaftThreadPool.submit(() -> {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        Response<RvoteResult> response = (Response<RvoteResult>) future.get(3000, MILLISECONDS);
+                        if (response == null) {
                             return -1;
-                        } finally {
-                            latch.countDown();
                         }
+                        boolean isVoteGranted = response.getResult().isVoteGranted();
+
+                        if (isVoteGranted) {
+                            success2.incrementAndGet();
+                        } else {
+                            // 更新自己的任期.
+                            long resTerm = response.getResult().getTerm();
+                            if (resTerm >= currentTerm) {
+                                currentTerm = resTerm;
+                            }
+                        }
+                        return 0;
+                    } catch (Exception e) {
+                        log.error("future.get exception , e : ", e);
+                        return -1;
+                    } finally {
+                        latch.countDown();
                     }
                 });
             }
@@ -701,23 +681,20 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                         param,
                         peer.getAddr());
 
-                RaftThreadPool.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Response<AentryResult> response = getRpcClient().send(request, AentryResult.class);
-                            AentryResult aentryResult = response.getResult();
-                            long term = aentryResult.getTerm();
+                RaftThreadPool.execute(() -> {
+                    try {
+                        Response<AentryResult> response = getRpcClient().send(request, AentryResult.class);
+                        AentryResult aentryResult = response.getResult();
+                        long term = aentryResult.getTerm();
 
-                            if (term > currentTerm) {
-                                log.error("self will become follower, he's term : {}, my term : {}", term, currentTerm);
-                                currentTerm = term;
-                                votedFor = "";
-                                status = NodeStatus.FOLLOWER;
-                            }
-                        } catch (Exception e) {
-                            log.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
+                        if (term > currentTerm) {
+                            log.error("self will become follower, he's term : {}, my term : {}", term, currentTerm);
+                            currentTerm = term;
+                            votedFor = "";
+                            status = NodeStatus.FOLLOWER;
                         }
+                    } catch (Exception e) {
+                        log.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
                     }
                 }, false);
             }
