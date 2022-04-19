@@ -33,7 +33,7 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>23.0</version>
+      <version>31.1-jre</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni
      http://172.20.61.182:18326/admin/browse.jsp?JMSDestination=Consumer.foot_stone_test.VirtualTopic.foot_stone_flow_change
