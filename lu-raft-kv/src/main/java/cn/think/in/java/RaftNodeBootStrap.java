@@ -27,7 +27,7 @@ public class RaftNodeBootStrap {
         NodeConfig config = new NodeConfig();
 
         // 自身节点
-        config.setSelfPort(Integer.valueOf(System.getProperty("serverPort")));
+        config.setSelfPort(Integer.valueOf(System.getProperty("serverPort", "8779")));
 
         // 其他节点地址
         config.setPeerAddrs(Arrays.asList(peerAddr));
