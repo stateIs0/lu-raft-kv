@@ -443,6 +443,9 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             while (running) {
                 try {
                     ReplicationFailModel model = replicationFailQueue.poll(1000, MILLISECONDS);
+                    if (model == null) {
+                        continue;
+                    }
                     if (status != LEADER) {
                         // 应该清空?
                         replicationFailQueue.clear();
