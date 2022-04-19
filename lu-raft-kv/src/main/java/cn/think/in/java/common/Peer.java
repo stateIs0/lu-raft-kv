@@ -1,9 +1,9 @@
 package cn.think.in.java.common;
 
-import java.util.Objects;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.Objects;
 
 /**
  * 当前节点的 同伴.

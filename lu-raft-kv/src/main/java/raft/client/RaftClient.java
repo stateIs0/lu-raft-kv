@@ -1,19 +1,16 @@
 package raft.client;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
-import com.google.common.collect.Lists;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import cn.think.in.java.current.SleepHelper;
 import cn.think.in.java.entity.LogEntry;
 import cn.think.in.java.rpc.DefaultRpcClient;
 import cn.think.in.java.rpc.Request;
-import cn.think.in.java.rpc.Response;
 import cn.think.in.java.rpc.RpcClient;
+import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author 莫那·鲁道
@@ -43,15 +40,15 @@ public class RaftClient {
                 r.setObj(obj);
                 r.setUrl(addr);
                 r.setCmd(Request.CLIENT_REQ);
-                Response<String> response;
+                String response;
                 try {
-                    response = CLIENT.send(r, String.class);
+                    response = CLIENT.send(r);
                 } catch (Exception e) {
                     r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-                    response = CLIENT.send(r, String.class);
+                    response = CLIENT.send(r);
                 }
 
-                LOGGER.info("request content : {}, url : {}, put response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response.getResult());
+                LOGGER.info("request content : {}, url : {}, put response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response);
 
                 SleepHelper.sleep(1000);
 
@@ -62,15 +59,15 @@ public class RaftClient {
                 r.setUrl(addr);
                 r.setObj(obj);
 
-                Response<LogEntry> response2;
+                LogEntry response2;
                 try {
-                    response2 = CLIENT.send(r, LogEntry.class);
+                    response2 = CLIENT.send(r);
                 } catch (Exception e) {
                     r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-                    response2 = CLIENT.send(r, LogEntry.class);
+                    response2 = CLIENT.send(r);
                 }
 
-                LOGGER.info("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2.getResult());
+                LOGGER.info("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2);
             } catch (Exception e) {
                 e.printStackTrace();
                 i = i - 1;

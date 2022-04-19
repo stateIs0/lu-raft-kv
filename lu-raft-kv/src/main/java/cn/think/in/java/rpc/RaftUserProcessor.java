@@ -1,10 +1,9 @@
 package cn.think.in.java.rpc;
 
+import cn.think.in.java.exception.RaftNotSupportException;
 import com.alipay.remoting.AsyncContext;
 import com.alipay.remoting.BizContext;
 import com.alipay.remoting.rpc.protocol.AbstractUserProcessor;
-
-import cn.think.in.java.exception.RaftNotSupportException;
 
 /**
  *

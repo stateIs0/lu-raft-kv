@@ -1,13 +1,11 @@
 package cn.think.in.java;
 
-import java.util.Arrays;
-
-import com.google.common.collect.Lists;
-
 import cn.think.in.java.common.NodeConfig;
 import cn.think.in.java.constant.StateMachineSaveType;
 import cn.think.in.java.impl.DefaultNode;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Arrays;
 
 /**
  * -DserverPort=8775

@@ -1,9 +1,9 @@
 package cn.think.in.java.entity;
 
-import java.util.concurrent.Callable;
-
 import cn.think.in.java.common.Peer;
 import lombok.Builder;
+
+import java.util.concurrent.Callable;
 
 /**
  *

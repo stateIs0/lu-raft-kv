@@ -44,9 +44,9 @@ public class RaftClient2 {
                 r.setObj(obj);
                 r.setCmd(Request.CLIENT_REQ);
 
-                Response<LogEntry> response2 = client.send(r, LogEntry.class);
+                LogEntry response2 = client.send(r);
 
-                LOGGER.info("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2.getResult());
+                LOGGER.info("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {

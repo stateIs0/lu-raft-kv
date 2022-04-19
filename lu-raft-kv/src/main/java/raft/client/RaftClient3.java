@@ -45,13 +45,13 @@ public class RaftClient3 {
             r.setObj(obj);
             r.setUrl(addr);
             r.setCmd(Request.CLIENT_REQ);
-            Response<String> response = null;
+            String response = null;
             try {
-                response = client.send(r, String.class);
+                response = client.send(r);
             } catch (Exception e) {
             }
 
-            LOGGER.info("request content : {}, url : {}, put response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response.getResult());
+            LOGGER.info("request content : {}, url : {}, put response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response);
 
             SleepHelper.sleep(1000);
 
@@ -62,20 +62,20 @@ public class RaftClient3 {
             r.setUrl(addr);
             r.setObj(obj);
 
-            Response<LogEntry> response2;
+            LogEntry response2;
             try {
-                response2 = client.send(r, LogEntry.class);
+                response2 = client.send(r);
             } catch (Exception e) {
                 r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-                response2 = client.send(r, LogEntry.class);
+                response2 = client.send(r);
             }
 
-            if (response.getResult() == null) {
-                LOGGER.error("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2.getResult());
+            if (response == null) {
+                LOGGER.error("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2);
                 System.exit(1);
                 return;
             }
-            LOGGER.info("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2.getResult());
+            LOGGER.info("request content : {}, url : {}, get response : {}", obj.key + "=" + obj.getValue(), r.getUrl(), response2);
         } catch (Exception e) {
             e.printStackTrace();
         }

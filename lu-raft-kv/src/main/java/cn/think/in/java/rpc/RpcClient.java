@@ -7,7 +7,13 @@ import cn.think.in.java.LifeCycle;
  */
 public interface RpcClient extends LifeCycle {
 
-    <R> Response<R> send(Request request, Class<R> c);
+    /**
+     * 发送请求, 并同步等待返回值.
+     * @param request 参数
+     * @param <R> 返回值泛型
+     * @return
+     */
+    <R> R send(Request request);
 
-    <R> Response<R> send(Request request, Class<R> c, int timeout);
+    <R> R send(Request request, int timeout);
 }

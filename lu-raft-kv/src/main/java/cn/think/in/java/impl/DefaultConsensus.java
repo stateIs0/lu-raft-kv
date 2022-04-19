@@ -1,21 +1,16 @@
 package cn.think.in.java.impl;
 
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import cn.think.in.java.Consensus;
 import cn.think.in.java.common.NodeStatus;
 import cn.think.in.java.common.Peer;
-import cn.think.in.java.entity.AentryParam;
-import cn.think.in.java.entity.AentryResult;
-import cn.think.in.java.entity.LogEntry;
-import cn.think.in.java.entity.RvoteParam;
-import cn.think.in.java.entity.RvoteResult;
+import cn.think.in.java.entity.*;
 import io.netty.util.internal.StringUtil;
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
@@ -82,7 +77,7 @@ public class DefaultConsensus implements Consensus {
                 // 更新
                 node.peerSet.setLeader(new Peer(param.getCandidateId()));
                 node.setCurrentTerm(param.getTerm());
-                node.setVotedFor(param.serverId);
+                node.setVotedFor(param.getServerId());
                 // 返回成功
                 return builder.term(node.currentTerm).voteGranted(true).build();
             }

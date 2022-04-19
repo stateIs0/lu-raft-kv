@@ -186,13 +186,12 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     @Override
     public ClientKVAck redirect(ClientKVReq request) {
-        Request r = Request.newBuilder()
+        Request r = Request.builder()
                 .obj(request)
                 .url(peerSet.getLeader().getAddr())
                 .cmd(Request.CLIENT_REQ).build();
 
-        Response<ClientKVAck> response = rpcClient.send(r, ClientKVAck.class);
-        return response.getResult();
+        return rpcClient.send(r);
     }
 
     /**
@@ -225,8 +224,8 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             return new ClientKVAck(null);
         }
 
-        LogEntry logEntry = LogEntry.newBuilder()
-                .command(Command.newBuilder().
+        LogEntry logEntry = LogEntry.builder()
+                .command(Command.builder().
                         key(request.getKey()).
                         value(request.getValue()).
                         build())
@@ -239,7 +238,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
         final AtomicInteger success = new AtomicInteger(0);
 
-        List<Future<Boolean>> futureList = new CopyOnWriteArrayList<>();
+        List<Future<Boolean>> futureList = new ArrayList<>();
 
         int count = 0;
         //  复制到其他机器
@@ -258,7 +257,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
         try {
             latch.await(4000, MILLISECONDS);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
 
         for (Boolean aBoolean : resultList) {
@@ -307,17 +306,14 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     private void getRPCAppendResult(List<Future<Boolean>> futureList, CountDownLatch latch, List<Boolean> resultList) {
         for (Future<Boolean> future : futureList) {
-            RaftThreadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        resultList.add(future.get(3000, MILLISECONDS));
-                    } catch (CancellationException | TimeoutException | ExecutionException | InterruptedException e) {
-                        e.printStackTrace();
-                        resultList.add(false);
-                    } finally {
-                        latch.countDown();
-                    }
+            RaftThreadPool.execute(() -> {
+                try {
+                    resultList.add(future.get(3000, MILLISECONDS));
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                    resultList.add(false);
+                } finally {
+                    latch.countDown();
                 }
             });
         }
@@ -334,7 +330,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             // 20 秒重试时间
             while (end - start < 20 * 1000L) {
 
-                AentryParam aentryParam = new AentryParam();
+                AentryParam aentryParam = AentryParam.builder().build();
                 aentryParam.setTerm(currentTerm);
                 aentryParam.setServerId(peer.getAddr());
                 aentryParam.setLeaderId(peerSet.getSelf().getAddr());
@@ -361,25 +357,24 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
                 aentryParam.setEntries(logEntries.toArray(new LogEntry[0]));
 
-                Request request = Request.newBuilder()
+                Request request = Request.builder()
                         .cmd(Request.A_ENTRIES)
                         .obj(aentryParam)
                         .url(peer.getAddr())
                         .build();
 
                 try {
-                    Response<AentryResult> response = getRpcClient().send(request, AentryResult.class);
-                    if (response == null) {
+                    AentryResult result = getRpcClient().send(request);
+                    if (result == null) {
                         return false;
                     }
-                    AentryResult result = response.getResult();
-                    if (result != null && result.isSuccess()) {
+                    if (result.isSuccess()) {
                         log.info("append follower entry success , follower=[{}], entry=[{}]", peer, aentryParam.getEntries());
                         // update 这两个追踪值
                         nextIndexs.put(peer, entry.getIndex() + 1);
                         matchIndexs.put(peer, entry.getIndex());
                         return true;
-                    } else if (result != null) {
+                    } else if (!result.isSuccess()) {
                         // 对方比我大
                         if (result.getTerm() > currentTerm) {
                             log.warn("follower [{}] term [{}] than more self, and my term = [{}], so, I will become follower",
@@ -427,7 +422,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
         if (entry == null) {
             log.warn("get perLog is null , parameter logEntry : {}", logEntry);
-            entry = LogEntry.newBuilder().index(0L).term(0).command(null).build();
+            entry = LogEntry.builder().index(0L).term(0).command(null).build();
         }
         return entry;
     }
@@ -536,7 +531,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
             List<Peer> peers = peerSet.getPeersWithOutSelf();
 
-            ArrayList<Future> futureArrayList = new ArrayList<>();
+            ArrayList<Future<RvoteResult>> futureArrayList = new ArrayList<>();
 
             log.info("peerList size : {}, peer list content : {}", peers.size(), peers);
 
@@ -550,22 +545,21 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                         lastTerm = last.getTerm();
                     }
 
-                    RvoteParam param = RvoteParam.newBuilder().
+                    RvoteParam param = RvoteParam.builder().
                             term(currentTerm).
                             candidateId(peerSet.getSelf().getAddr()).
                             lastLogIndex(LongConvert.convert(logModule.getLastIndex())).
                             lastLogTerm(lastTerm).
                             build();
 
-                    Request request = Request.newBuilder()
+                    Request request = Request.builder()
                             .cmd(Request.R_VOTE)
                             .obj(param)
                             .url(peer.getAddr())
                             .build();
 
                     try {
-                        Response<RvoteResult> response = getRpcClient().send(request, RvoteResult.class);
-                        return response;
+                        return getRpcClient().<RvoteResult>send(request);
                     } catch (RaftRemotingException e) {
                         log.error("ElectionTask RPC Fail , URL : " + request.getUrl());
                         return null;
@@ -672,7 +666,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             // 心跳只关心 term 和 leaderID
             for (Peer peer : peerSet.getPeersWithOutSelf()) {
 
-                AentryParam param = AentryParam.newBuilder()
+                AentryParam param = AentryParam.builder()
                         .entries(null)// 心跳,空日志.
                         .leaderId(peerSet.getSelf().getAddr())
                         .serverId(peer.getAddr())
@@ -686,8 +680,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
                 RaftThreadPool.execute(() -> {
                     try {
-                        Response<AentryResult> response = getRpcClient().send(request, AentryResult.class);
-                        AentryResult aentryResult = response.getResult();
+                        AentryResult aentryResult = getRpcClient().send(request);
                         long term = aentryResult.getTerm();
 
                         if (term > currentTerm) {

@@ -1,11 +1,11 @@
 package cn.think.in.java.common;
 
-import java.util.List;
-
 import cn.think.in.java.constant.StateMachineSaveType;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.util.List;
 
 /**
  *

@@ -1,19 +1,15 @@
 package cn.think.in.java.impl;
 
-import java.io.File;
-
+import cn.think.in.java.StateMachine;
+import cn.think.in.java.entity.Command;
+import cn.think.in.java.entity.LogEntry;
 import com.alibaba.fastjson.JSON;
-
 import lombok.extern.slf4j.Slf4j;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import cn.think.in.java.StateMachine;
-import cn.think.in.java.entity.Command;
-import cn.think.in.java.entity.LogEntry;
+import java.io.File;
 
 /**
  * 默认的状态机实现.
@@ -85,7 +81,7 @@ public class DefaultStateMachine implements StateMachine {
             }
             return JSON.parseObject(result, LogEntry.class);
         } catch (RocksDBException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage());
         }
         return null;
     }
@@ -98,7 +94,7 @@ public class DefaultStateMachine implements StateMachine {
                 return new String(bytes);
             }
         } catch (RocksDBException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage());
         }
         return "";
     }
@@ -108,7 +104,7 @@ public class DefaultStateMachine implements StateMachine {
         try {
             machineDb.put(key.getBytes(), value.getBytes());
         } catch (RocksDBException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage());
         }
     }
 
@@ -119,7 +115,7 @@ public class DefaultStateMachine implements StateMachine {
                 machineDb.delete(s.getBytes());
             }
         } catch (RocksDBException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage());
         }
     }
 
@@ -135,7 +131,7 @@ public class DefaultStateMachine implements StateMachine {
             String key = command.getKey();
             machineDb.put(key.getBytes(), JSON.toJSONBytes(logEntry));
         } catch (RocksDBException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage());
         }
     }
 

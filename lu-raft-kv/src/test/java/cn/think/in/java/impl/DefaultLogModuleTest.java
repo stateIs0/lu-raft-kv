@@ -34,9 +34,9 @@ public class DefaultLogModuleTest {
 
     @Test
     public void write() {
-        LogEntry entry = LogEntry.newBuilder().
+        LogEntry entry = LogEntry.builder().
                 term(1).
-                command(Command.newBuilder().key("hello").value("world").build()).
+                command(Command.builder().key("hello").value("world").build()).
                 build();
         defaultLogs.write(entry);
 

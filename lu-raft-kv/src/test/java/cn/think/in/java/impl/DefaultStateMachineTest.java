@@ -27,7 +27,7 @@ public class DefaultStateMachineTest {
 
     @Test
     public void apply() {
-        LogEntry logEntry = LogEntry.newBuilder().term(1).command(Command.newBuilder().key("hello").value("value1").build()).build();
+        LogEntry logEntry = LogEntry.builder().term(1).command(Command.builder().key("hello").value("value1").build()).build();
         machine.apply(logEntry);
     }
 

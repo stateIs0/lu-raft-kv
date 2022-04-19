@@ -1,9 +1,9 @@
 package cn.think.in.java.entity;
 
-import java.io.Serializable;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serializable;
 
 /**
  *

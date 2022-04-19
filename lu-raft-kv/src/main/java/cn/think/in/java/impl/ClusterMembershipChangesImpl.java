@@ -1,15 +1,13 @@
 package cn.think.in.java.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import cn.think.in.java.common.NodeStatus;
 import cn.think.in.java.common.Peer;
 import cn.think.in.java.entity.LogEntry;
 import cn.think.in.java.membership.changes.ClusterMembershipChanges;
 import cn.think.in.java.membership.changes.Result;
 import cn.think.in.java.rpc.Request;
-import cn.think.in.java.rpc.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 集群配置变更接口默认实现.
@@ -54,14 +52,13 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
 
             for (Peer ignore : node.peerSet.getPeersWithOutSelf()) {
                 // TODO 同步到其他节点.
-                Request request = Request.newBuilder()
+                Request request = Request.builder()
                         .cmd(Request.CHANGE_CONFIG_ADD)
                         .url(newPeer.getAddr())
                         .obj(newPeer)
                         .build();
 
-                Response<Result> response = node.rpcClient.send(request, Result.class);
-                Result result = response.getResult();
+                Result result = node.rpcClient.send(request);
                 if (result != null && result.getStatus() == Result.Status.SUCCESS.getCode()) {
                     LOGGER.info("replication config success, peer : {}, newServer : {}", newPeer, newPeer);
                 } else {

@@ -1,12 +1,10 @@
 package cn.think.in.java.rpc;
 
+import cn.think.in.java.exception.RaftRemotingException;
 import com.alipay.remoting.exception.RemotingException;
-
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import cn.think.in.java.exception.RaftRemotingException;
 
 import java.util.concurrent.TimeUnit;
 
@@ -25,21 +23,22 @@ public class DefaultRpcClient implements RpcClient {
 
 
     @Override
-    public <R> Response<R> send(Request request, Class<R> c) {
-        return send(request, c, (int) TimeUnit.SECONDS.toMillis(5));
+    public <R> R send(Request request) {
+        return send(request, (int) TimeUnit.SECONDS.toMillis(5));
     }
 
     @Override
-    public <R> Response<R> send(Request request, Class<R> c, int timeout) {
-        Response<R> result = null;
+    public <R> R send(Request request, int timeout) {
+        Response<R> result;
         try {
             result = (Response<R>) CLIENT.invokeSync(request.getUrl(), request, timeout);
+            return result.getResult();
         } catch (RemotingException e) {
             throw new RaftRemotingException("rpc RaftRemotingException ", e);
         } catch (InterruptedException e) {
             // ignore
         }
-        return (result);
+        return null;
     }
 
     @Override
