@@ -56,3 +56,6 @@
 
 感谢 rocksDB 提供 KV 存储 https://github.com/facebook/rocksdb
 
+## License
+
+[Apache 2.0 License.](https://github.com/stateIs0/lu-raft-kv/blob/master/LICENSE)
