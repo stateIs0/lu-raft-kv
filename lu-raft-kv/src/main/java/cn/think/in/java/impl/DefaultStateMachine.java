@@ -4,6 +4,7 @@ import java.io.File;
 
 import com.alibaba.fastjson.JSON;
 
+import lombok.extern.slf4j.Slf4j;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -20,48 +21,56 @@ import cn.think.in.java.entity.LogEntry;
  *
  * @author 莫那·鲁道
  */
+@Slf4j
 public class DefaultStateMachine implements StateMachine {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStateMachine.class);
-
     /** public just for test */
-    public static String dbDir;
-    public static String stateMachineDir;
+    public String dbDir;
+    public String stateMachineDir;
 
-    public static RocksDB machineDb;
-
-    static {
-        if (dbDir == null) {
-            dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
-        }
-        if (stateMachineDir == null) {
-            stateMachineDir =dbDir + "/stateMachine";
-        }
-        RocksDB.loadLibrary();
-    }
+    public RocksDB machineDb;
 
 
     private DefaultStateMachine() {
         try {
+            if (dbDir == null) {
+                dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
+            }
+            if (stateMachineDir == null) {
+                stateMachineDir =dbDir + "/stateMachine";
+            }
+            RocksDB.loadLibrary();
+
             File file = new File(stateMachineDir);
             boolean success = false;
             if (!file.exists()) {
                 success = file.mkdirs();
             }
             if (success) {
-                LOGGER.warn("make a new dir : " + stateMachineDir);
+                log.warn("make a new dir : " + stateMachineDir);
             }
             Options options = new Options();
             options.setCreateIfMissing(true);
             machineDb = RocksDB.open(options, stateMachineDir);
 
         } catch (RocksDBException e) {
-            LOGGER.info(e.getMessage());
+            log.info(e.getMessage());
         }
     }
 
     public static DefaultStateMachine getInstance() {
         return DefaultStateMachineLazyHolder.INSTANCE;
+    }
+
+    @Override
+    public void init() throws Throwable {
+
+    }
+
+    @Override
+    public void destroy() throws Throwable {
+        machineDb.close();
+        log.info("destroy success");
     }
 
     private static class DefaultStateMachineLazyHolder {
@@ -78,7 +87,7 @@ public class DefaultStateMachine implements StateMachine {
             }
             return JSON.parseObject(result, LogEntry.class);
         } catch (RocksDBException e) {
-            LOGGER.info(e.getMessage());
+            log.info(e.getMessage());
         }
         return null;
     }
@@ -91,7 +100,7 @@ public class DefaultStateMachine implements StateMachine {
                 return new String(bytes);
             }
         } catch (RocksDBException e) {
-            LOGGER.info(e.getMessage());
+            log.info(e.getMessage());
         }
         return "";
     }
@@ -101,7 +110,7 @@ public class DefaultStateMachine implements StateMachine {
         try {
             machineDb.put(key.getBytes(), value.getBytes());
         } catch (RocksDBException e) {
-            LOGGER.info(e.getMessage());
+            log.info(e.getMessage());
         }
     }
 
@@ -112,7 +121,7 @@ public class DefaultStateMachine implements StateMachine {
                 machineDb.delete(s.getBytes());
             }
         } catch (RocksDBException e) {
-            LOGGER.info(e.getMessage());
+            log.info(e.getMessage());
         }
     }
 
@@ -128,7 +137,7 @@ public class DefaultStateMachine implements StateMachine {
             String key = command.getKey();
             machineDb.put(key.getBytes(), JSON.toJSONBytes(logEntry));
         } catch (RocksDBException e) {
-            LOGGER.info(e.getMessage());
+            log.info(e.getMessage());
         }
     }
 

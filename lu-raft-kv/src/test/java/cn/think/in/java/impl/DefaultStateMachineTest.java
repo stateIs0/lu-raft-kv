@@ -12,18 +12,17 @@ import cn.think.in.java.entity.LogEntry;
  * @author 莫那·鲁道
  */
 public class DefaultStateMachineTest {
+    static DefaultStateMachine machine = DefaultStateMachine.getInstance();
 
     static {
         System.setProperty("serverPort", "8777");
-        DefaultStateMachine.dbDir = "/Users/cxs/code/lu-raft-revert/rocksDB-raft/" + System.getProperty("serverPort");
-        DefaultStateMachine.stateMachineDir = DefaultStateMachine.dbDir + "/stateMachine";
+        machine.dbDir = "/Users/cxs/code/lu-raft-revert/rocksDB-raft/" + System.getProperty("serverPort");
+        machine.stateMachineDir = machine.dbDir + "/stateMachine";
     }
-    DefaultStateMachine machine;
 
     @Before
     public void before() {
         machine = DefaultStateMachine.getInstance();
-
     }
 
     @Test

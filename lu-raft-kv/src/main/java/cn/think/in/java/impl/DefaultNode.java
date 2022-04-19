@@ -20,6 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,9 +62,10 @@ import raft.client.ClientKVReq;
  */
 @Getter
 @Setter
-public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChanges {
+@Slf4j
+public class DefaultNode implements Node, ClusterMembershipChanges {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultNode.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultNode.class);
 
     /** 选举时间间隔基数 */
     public volatile long electionTime = 15 * 1000;
@@ -166,7 +168,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
             if (started) {
                 return;
             }
-            RPC_SERVER.start();
+            RPC_SERVER.init();
 
             consensus = new DefaultConsensus(this);
             delegate = new ClusterMembershipChangesImpl(this);
@@ -182,7 +184,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
             started = true;
 
-            LOGGER.info("start success, selfId : {} ", peerSet.getSelf());
+            log.info("start success, selfId : {} ", peerSet.getSelf());
         }
     }
 
@@ -207,14 +209,14 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
     @Override
     public RvoteResult handlerRequestVote(RvoteParam param) {
-        LOGGER.warn("handlerRequestVote will be invoke, param info : {}", param);
+        log.warn("handlerRequestVote will be invoke, param info : {}", param);
         return consensus.requestVote(param);
     }
 
     @Override
     public AentryResult handlerAppendEntries(AentryParam param) {
         if (param.getEntries() != null) {
-            LOGGER.warn("node receive node {} append entry, entry content = {}", param.getLeaderId(), param.getEntries());
+            log.warn("node receive node {} append entry, entry content = {}", param.getLeaderId(), param.getEntries());
         }
 
         return consensus.appendEntries(param);
@@ -243,11 +245,11 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
     @Override
     public synchronized ClientKVAck handlerClientRequest(ClientKVReq request) {
 
-        LOGGER.warn("handlerClientRequest handler {} operation,  and key : [{}], value : [{}]",
+        log.warn("handlerClientRequest handler {} operation,  and key : [{}], value : [{}]",
             ClientKVReq.Type.value(request.getType()), request.getKey(), request.getValue());
 
         if (status != LEADER) {
-            LOGGER.warn("I not am leader , only invoke redirect method, leader addr : {}, my addr : {}",
+            log.warn("I not am leader , only invoke redirect method, leader addr : {}, my addr : {}",
                 peerSet.getLeader(), peerSet.getSelf().getAddr());
             return redirect(request);
         }
@@ -270,7 +272,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
         // 预提交到本地日志, TODO 预提交
         logModule.write(logEntry);
-        LOGGER.info("write logModule success, logEntry info : {}, log index : {}", logEntry, logEntry.getIndex());
+        log.info("write logModule success, logEntry info : {}, log index : {}", logEntry, logEntry.getIndex());
 
         final AtomicInteger success = new AtomicInteger(0);
 
@@ -327,13 +329,13 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
             getStateMachine().apply(logEntry);
             lastApplied = commitIndex;
 
-            LOGGER.info("success apply local state machine,  logEntry info : {}", logEntry);
+            log.info("success apply local state machine,  logEntry info : {}", logEntry);
             // 返回成功.
             return ClientKVAck.ok();
         } else {
             // 回滚已经提交的日志.
             logModule.removeOnStartIndex(logEntry.getIndex());
-            LOGGER.warn("fail apply local state  machine,  logEntry info : {}", logEntry);
+            log.warn("fail apply local state  machine,  logEntry info : {}", logEntry);
             // TODO 不应用到状态机,但已经记录到日志中.由定时任务从重试队列取出,然后重复尝试,当达到条件时,应用到状态机.
             // 这里应该返回错误, 因为没有成功复制过半机器.
             return ClientKVAck.fail();
@@ -411,7 +413,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                         }
                         AentryResult result = (AentryResult) response.getResult();
                         if (result != null && result.isSuccess()) {
-                            LOGGER.info("append follower entry success , follower=[{}], entry=[{}]", peer, aentryParam.getEntries());
+                            log.info("append follower entry success , follower=[{}], entry=[{}]", peer, aentryParam.getEntries());
                             // update 这两个追踪值
                             nextIndexs.put(peer, entry.getIndex() + 1);
                             matchIndexs.put(peer, entry.getIndex());
@@ -419,7 +421,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                         } else if (result != null) {
                             // 对方比我大
                             if (result.getTerm() > currentTerm) {
-                                LOGGER.warn("follower [{}] term [{}] than more self, and my term = [{}], so, I will become follower",
+                                log.warn("follower [{}] term [{}] than more self, and my term = [{}], so, I will become follower",
                                     peer, result.getTerm(), currentTerm);
                                 currentTerm = result.getTerm();
                                 // 认怂, 变成跟随者
@@ -432,7 +434,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                                     nextIndex = 1L;
                                 }
                                 nextIndexs.put(peer, nextIndex - 1);
-                                LOGGER.warn("follower {} nextIndex not match, will reduce nextIndex and retry RPC append, nextIndex : [{}]", peer.getAddr(),
+                                log.warn("follower {} nextIndex not match, will reduce nextIndex and retry RPC append, nextIndex : [{}]", peer.getAddr(),
                                     nextIndex);
                                 // 重来, 直到成功.
                             }
@@ -441,7 +443,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                         end = System.currentTimeMillis();
 
                     } catch (Exception e) {
-                        LOGGER.warn(e.getMessage(), e);
+                        log.warn(e.getMessage(), e);
                         // TODO 到底要不要放队列重试?
 //                        ReplicationFailModel model =  ReplicationFailModel.newBuilder()
 //                            .callable(this)
@@ -464,7 +466,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
         LogEntry entry = logModule.read(logEntry.getIndex() - 1);
 
         if (entry == null) {
-            LOGGER.warn("get perLog is null , parameter logEntry : {}", logEntry);
+            log.warn("get perLog is null , parameter logEntry : {}", logEntry);
             entry = LogEntry.newBuilder().index(0L).term(0).command(null).build();
         }
         return entry;
@@ -487,10 +489,10 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                         replicationFailQueue.clear();
                         continue;
                     }
-                    LOGGER.warn("replication Fail Queue Consumer take a task, will be retry replication, content detail : [{}]", model.logEntry);
+                    log.warn("replication Fail Queue Consumer take a task, will be retry replication, content detail : [{}]", model.logEntry);
                     long offerTime = model.offerTime;
                     if (System.currentTimeMillis() - offerTime > intervalTime) {
-                        LOGGER.warn("replication Fail event Queue maybe full or handler slow");
+                        log.warn("replication Fail event Queue maybe full or handler slow");
                     }
 
                     Callable callable = model.callable;
@@ -505,7 +507,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                 } catch (InterruptedException e) {
                     // ignore
                 } catch (ExecutionException | TimeoutException e) {
-                    LOGGER.warn(e.getMessage());
+                    log.warn(e.getMessage());
                 }
             }
         }
@@ -527,7 +529,10 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
     @Override
     public void destroy() throws Throwable {
-        RPC_SERVER.stop();
+        RPC_SERVER.destroy();
+        stateMachine.destroy();
+        rpcClient.destroy();
+        log.info("destroy success");
     }
 
 
@@ -557,7 +562,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                 return;
             }
             status = NodeStatus.CANDIDATE;
-            LOGGER.error("node {} will become CANDIDATE and start election leader, current term : [{}], LastEntry : [{}]",
+            log.error("node {} will become CANDIDATE and start election leader, current term : [{}], LastEntry : [{}]",
                 peerSet.getSelf(), currentTerm, logModule.getLast());
 
             preElectionTime = System.currentTimeMillis() + ThreadLocalRandom.current().nextInt(200) + 150;
@@ -570,7 +575,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
 
             ArrayList<Future> futureArrayList = new ArrayList<>();
 
-            LOGGER.info("peerList size : {}, peer list content : {}", peers.size(), peers);
+            log.info("peerList size : {}, peer list content : {}", peers.size(), peers);
 
             // 发送请求
             for (Peer peer : peers) {
@@ -603,7 +608,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                             return response;
 
                         } catch (RaftRemotingException e) {
-                            LOGGER.error("ElectionTask RPC Fail , URL : " + request.getUrl());
+                            log.error("ElectionTask RPC Fail , URL : " + request.getUrl());
                             return null;
                         }
                     }
@@ -613,7 +618,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
             AtomicInteger success2 = new AtomicInteger(0);
             CountDownLatch latch = new CountDownLatch(futureArrayList.size());
 
-            LOGGER.info("futureArrayList.size() : {}", futureArrayList.size());
+            log.info("futureArrayList.size() : {}", futureArrayList.size());
             // 等待结果.
             for (Future future : futureArrayList) {
                 RaftThreadPool.submit(new Callable() {
@@ -639,7 +644,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                             }
                             return 0;
                         } catch (Exception e) {
-                            LOGGER.error("future.get exception , e : ", e);
+                            log.error("future.get exception , e : ", e);
                             return -1;
                         } finally {
                             latch.countDown();
@@ -652,18 +657,18 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                 // 稍等片刻
                 latch.await(3500, MILLISECONDS);
             } catch (InterruptedException e) {
-                LOGGER.warn("InterruptedException By Master election Task");
+                log.warn("InterruptedException By Master election Task");
             }
 
             int success = success2.get();
-            LOGGER.info("node {} maybe become leader , success count = {} , status : {}", peerSet.getSelf(), success, NodeStatus.Enum.value(status));
+            log.info("node {} maybe become leader , success count = {} , status : {}", peerSet.getSelf(), success, NodeStatus.Enum.value(status));
             // 如果投票期间,有其他服务器发送 appendEntry , 就可能变成 follower ,这时,应该停止.
             if (status == NodeStatus.FOLLOWER) {
                 return;
             }
             // 加上自身.
             if (success >= peers.size() / 2) {
-                LOGGER.warn("node {} become leader ", peerSet.getSelf());
+                log.warn("node {} become leader ", peerSet.getSelf());
                 status = LEADER;
                 peerSet.setLeader(peerSet.getSelf());
                 votedFor = "";
@@ -703,9 +708,9 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
             if (current - preHeartBeatTime < heartBeatTick) {
                 return;
             }
-            LOGGER.info("=========== NextIndex =============");
+            log.info("=========== NextIndex =============");
             for (Peer peer : peerSet.getPeersWithOutSelf()) {
-                LOGGER.info("Peer {} nextIndex={}", peer.getAddr(), nextIndexs.get(peer));
+                log.info("Peer {} nextIndex={}", peer.getAddr(), nextIndexs.get(peer));
             }
 
             preHeartBeatTime = System.currentTimeMillis();
@@ -734,13 +739,13 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
                             long term = aentryResult.getTerm();
 
                             if (term > currentTerm) {
-                                LOGGER.error("self will become follower, he's term : {}, my term : {}", term, currentTerm);
+                                log.error("self will become follower, he's term : {}, my term : {}", term, currentTerm);
                                 currentTerm = term;
                                 votedFor = "";
                                 status = NodeStatus.FOLLOWER;
                             }
                         } catch (Exception e) {
-                            LOGGER.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
+                            log.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
                         }
                     }
                 }, false);

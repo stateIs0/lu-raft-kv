@@ -7,7 +7,7 @@ import cn.think.in.java.entity.LogEntry;
  * @see cn.think.in.java.entity.LogEntry
  * @author 莫那·鲁道
  */
-public interface LogModule {
+public interface LogModule extends LifeCycle {
 
     void write(LogEntry logEntry);
 

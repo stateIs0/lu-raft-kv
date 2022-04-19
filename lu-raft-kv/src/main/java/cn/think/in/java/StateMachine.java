@@ -6,7 +6,7 @@ import cn.think.in.java.entity.LogEntry;
  * 状态机接口.
  * @author 莫那·鲁道
  */
-public interface StateMachine {
+public interface StateMachine extends LifeCycle {
 
     /**
      * 将数据应用到状态机.

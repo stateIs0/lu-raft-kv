@@ -10,24 +10,21 @@ import cn.think.in.java.entity.LogEntry;
 
 
 /**
- *
  * @author 莫那·鲁道
  */
 public class DefaultLogModuleTest {
 
+    static DefaultLogModule defaultLogs = DefaultLogModule.getInstance();
+
     static {
         System.setProperty("serverPort", "8779");
-        DefaultLogModule.dbDir = "/Users/cxs/code/lu-raft-revert/rocksDB-raft/" + System.getProperty("serverPort");
-        DefaultLogModule.logsDir = DefaultLogModule.dbDir + "/logModule";
+        defaultLogs.dbDir = "/Users/cxs/code/lu-raft-revert/rocksDB-raft/" + System.getProperty("serverPort");
+        defaultLogs.logsDir = defaultLogs.dbDir + "/logModule";
     }
-
-    DefaultLogModule defaultLogs;
 
     @Before
     public void setUp() throws Exception {
         System.setProperty("serverPort", "8777");
-
-        defaultLogs = DefaultLogModule.getInstance();
     }
 
     @After
@@ -38,9 +35,9 @@ public class DefaultLogModuleTest {
     @Test
     public void write() {
         LogEntry entry = LogEntry.newBuilder().
-            term(1).
-            command(Command.newBuilder().key("hello").value("world").build()).
-            build();
+                term(1).
+                command(Command.newBuilder().key("hello").value("world").build()).
+                build();
         defaultLogs.write(entry);
 
         Assert.assertEquals(entry, defaultLogs.read(entry.getIndex()));

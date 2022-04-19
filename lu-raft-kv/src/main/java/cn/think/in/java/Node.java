@@ -12,7 +12,7 @@ import raft.client.ClientKVReq;
  *
  * @author 莫那·鲁道
  */
-public interface Node<T> extends LifeCycle{
+public interface Node extends LifeCycle {
 
     /**
      * 设置配置文件.

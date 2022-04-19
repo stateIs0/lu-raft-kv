@@ -32,13 +32,20 @@ public class RedisStateMachine implements StateMachine {
         private static final RedisStateMachine INSTANCE = new RedisStateMachine();
     }
 
-    private void init() {
+    @Override
+    public void init() {
         GenericObjectPoolConfig redisConfig = new GenericObjectPoolConfig();
         redisConfig.setMaxTotal(100);
         redisConfig.setMaxWaitMillis(10 * 1000);
         redisConfig.setMaxIdle(100);
         redisConfig.setTestOnBorrow(true);
         jedisPool = new JedisPool(redisConfig, System.getProperty("redis.host", "127.0.0.1"), 6379);
+    }
+
+    @Override
+    public void destroy() throws Throwable {
+        jedisPool.close();
+        log.info("destroy success");
     }
 
     @Override

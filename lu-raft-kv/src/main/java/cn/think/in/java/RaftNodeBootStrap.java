@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 import cn.think.in.java.common.NodeConfig;
 import cn.think.in.java.constant.StateMachineSaveType;
 import cn.think.in.java.impl.DefaultNode;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * -DserverPort=8775
@@ -15,6 +16,7 @@ import cn.think.in.java.impl.DefaultNode;
  * -DserverPort=8778
  * -DserverPort=8779
  */
+@Slf4j
 public class RaftNodeBootStrap {
 
     public static void main(String[] args) throws Throwable {
@@ -39,6 +41,7 @@ public class RaftNodeBootStrap {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
+                log.info("gracefully stop");
                 node.destroy();
             } catch (Throwable throwable) {
                 throwable.printStackTrace();

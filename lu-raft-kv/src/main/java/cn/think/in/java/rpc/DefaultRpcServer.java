@@ -7,6 +7,7 @@ import cn.think.in.java.entity.AentryParam;
 import cn.think.in.java.entity.RvoteParam;
 import cn.think.in.java.impl.DefaultNode;
 import cn.think.in.java.membership.changes.ClusterMembershipChanges;
+import lombok.extern.slf4j.Slf4j;
 import raft.client.ClientKVReq;
 
 /**
@@ -17,6 +18,7 @@ import raft.client.ClientKVReq;
  *
  */
 @SuppressWarnings("unchecked")
+@Slf4j
 public class DefaultRpcServer implements RpcServer {
 
     private volatile boolean flag;
@@ -51,15 +53,6 @@ public class DefaultRpcServer implements RpcServer {
 
     }
 
-    @Override
-    public void start() {
-        rpcServer.start();
-    }
-
-    @Override
-    public void stop() {
-        rpcServer.stop();
-    }
 
     @Override
     public Response handlerRequest(Request request) {
@@ -78,4 +71,14 @@ public class DefaultRpcServer implements RpcServer {
     }
 
 
+    @Override
+    public void init() throws Throwable {
+        rpcServer.start();
+    }
+
+    @Override
+    public void destroy() throws Throwable {
+        rpcServer.stop();
+        log.info("destroy success");
+    }
 }

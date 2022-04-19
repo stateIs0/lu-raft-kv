@@ -5,6 +5,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.alibaba.fastjson.JSON;
 
+import lombok.extern.slf4j.Slf4j;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -27,22 +28,20 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
  */
 @Setter
 @Getter
+@Slf4j
 public class DefaultLogModule implements LogModule {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultLogModule.class);
-
-
     /** public just for test */
-    public static String dbDir;
-    public static String logsDir;
+    public String dbDir;
+    public String logsDir;
 
-    private static RocksDB logDb;
+    private RocksDB logDb;
 
     public final static byte[] LAST_INDEX_KEY = "LAST_INDEX_KEY".getBytes();
 
     ReentrantLock lock = new ReentrantLock();
 
-    static {
+    private DefaultLogModule() {
         if (dbDir == null) {
             dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
         }
@@ -50,9 +49,6 @@ public class DefaultLogModule implements LogModule {
             logsDir = dbDir + "/logModule";
         }
         RocksDB.loadLibrary();
-    }
-
-    private DefaultLogModule() {
         Options options = new Options();
         options.setCreateIfMissing(true);
 
@@ -62,17 +58,28 @@ public class DefaultLogModule implements LogModule {
             success = file.mkdirs();
         }
         if (success) {
-            LOGGER.warn("make a new dir : " + logsDir);
+            log.warn("make a new dir : " + logsDir);
         }
         try {
             logDb = RocksDB.open(options, logsDir);
         } catch (RocksDBException e) {
-            LOGGER.warn(e.getMessage());
+            log.warn(e.getMessage());
         }
     }
 
     public static DefaultLogModule getInstance() {
         return DefaultLogsLazyHolder.INSTANCE;
+    }
+
+    @Override
+    public void init() throws Throwable {
+
+    }
+
+    @Override
+    public void destroy() throws Throwable {
+        logDb.close();
+        log.info("destroy success");
     }
 
     private static class DefaultLogsLazyHolder {
@@ -94,9 +101,9 @@ public class DefaultLogModule implements LogModule {
             logEntry.setIndex(getLastIndex() + 1);
             logDb.put(logEntry.getIndex().toString().getBytes(), JSON.toJSONBytes(logEntry));
             success = true;
-            LOGGER.info("DefaultLogModule write rocksDB success, logEntry info : [{}]", logEntry);
+            log.info("DefaultLogModule write rocksDB success, logEntry info : [{}]", logEntry);
         } catch (RocksDBException | InterruptedException e) {
-            LOGGER.warn(e.getMessage());
+            log.warn(e.getMessage());
         } finally {
             if (success) {
                 updateLastIndex(logEntry.getIndex());
@@ -115,7 +122,7 @@ public class DefaultLogModule implements LogModule {
             }
             return JSON.parseObject(result, LogEntry.class);
         } catch (RocksDBException e) {
-            LOGGER.warn(e.getMessage(), e);
+            log.warn(e.getMessage(), e);
         }
         return null;
     }
@@ -131,9 +138,9 @@ public class DefaultLogModule implements LogModule {
                 ++count;
             }
             success = true;
-            LOGGER.warn("rocksDB removeOnStartIndex success, count={} startIndex={}, lastIndex={}", count, startIndex, getLastIndex());
+            log.warn("rocksDB removeOnStartIndex success, count={} startIndex={}, lastIndex={}", count, startIndex, getLastIndex());
         } catch (InterruptedException | RocksDBException e) {
-            LOGGER.warn(e.getMessage());
+            log.warn(e.getMessage());
         } finally {
             if (success) {
                 updateLastIndex(getLastIndex() - count);
