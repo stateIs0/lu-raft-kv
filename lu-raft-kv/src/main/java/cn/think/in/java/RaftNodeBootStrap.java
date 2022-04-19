@@ -18,10 +18,10 @@ import java.util.Arrays;
 public class RaftNodeBootStrap {
 
     public static void main(String[] args) throws Throwable {
-        main0();
+        boot();
     }
 
-    public static void main0() throws Throwable {
+    public static void boot() throws Throwable {
         String[] peerAddr = {"localhost:8775", "localhost:8776", "localhost:8777", "localhost:8778", "localhost:8779"};
 
         NodeConfig config = new NodeConfig();
