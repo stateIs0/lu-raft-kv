@@ -3,8 +3,6 @@ package cn.think.in.java.rpc;
 import cn.think.in.java.exception.RaftRemotingException;
 import com.alipay.remoting.exception.RemotingException;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
@@ -13,14 +11,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public class DefaultRpcClient implements RpcClient {
-    public static Logger logger = LoggerFactory.getLogger(DefaultRpcClient.class.getName());
 
     private final static com.alipay.remoting.rpc.RpcClient CLIENT = new com.alipay.remoting.rpc.RpcClient();
-
-    static {
-        CLIENT.init();
-    }
-
 
     @Override
     public <R> R send(Request request) {
@@ -42,12 +34,12 @@ public class DefaultRpcClient implements RpcClient {
     }
 
     @Override
-    public void init() throws Throwable {
-
+    public void init() {
+        CLIENT.init();
     }
 
     @Override
-    public void destroy() throws Throwable {
+    public void destroy() {
         CLIENT.shutdown();
         log.info("destroy success");
     }

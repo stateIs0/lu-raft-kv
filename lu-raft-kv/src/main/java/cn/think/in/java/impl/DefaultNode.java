@@ -133,6 +133,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
     public void init() throws Throwable {
         running = true;
         rpcServer.init();
+        rpcClient.init();
 
         consensus = new DefaultConsensus(this);
         delegate = new ClusterMembershipChangesImpl(this);
