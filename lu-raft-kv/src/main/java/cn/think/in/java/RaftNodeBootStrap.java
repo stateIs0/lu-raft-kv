@@ -32,6 +32,7 @@ public class RaftNodeBootStrap {
         // 其他节点地址
         config.setPeerAddrs(Arrays.asList(peerAddr));
         config.setStateMachineSaveType(StateMachineSaveType.ROCKS_DB);
+
         Node node = DefaultNode.getInstance();
         node.setConfig(config);
 
