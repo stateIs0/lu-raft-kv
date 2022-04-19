@@ -2,6 +2,7 @@ package cn.think.in.java.common;
 
 import java.util.List;
 
+import cn.think.in.java.constant.StateMachineSaveType;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -22,5 +23,8 @@ public class NodeConfig {
 
     /** 所有节点地址. */
     public List<String> peerAddrs;
-
+    /**
+     *  状态快照存储类型
+     */
+    public StateMachineSaveType stateMachineSaveType;
 }

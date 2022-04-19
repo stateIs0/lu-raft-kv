@@ -1,5 +1,8 @@
 package cn.think.in.java.impl;
 
+import static cn.think.in.java.common.NodeStatus.LEADER;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -51,9 +54,6 @@ import lombok.Getter;
 import lombok.Setter;
 import raft.client.ClientKVAck;
 import raft.client.ClientKVReq;
-
-import static cn.think.in.java.common.NodeStatus.LEADER;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * 抽象机器节点, 初始为 follower, 角色随时变化.
@@ -189,7 +189,7 @@ public class DefaultNode<T> implements Node<T>, LifeCycle, ClusterMembershipChan
     @Override
     public void setConfig(NodeConfig config) {
         this.config = config;
-        stateMachine = DefaultStateMachine.getInstance();
+        stateMachine = config.getStateMachineSaveType().getStateMachine();
         logModule = DefaultLogModule.getInstance();
 
         peerSet = PeerSet.getInstance();
