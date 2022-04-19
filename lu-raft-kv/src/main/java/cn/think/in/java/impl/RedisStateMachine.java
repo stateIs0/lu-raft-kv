@@ -1,14 +1,11 @@
 package cn.think.in.java.impl;
 
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.JSON;
-
 import cn.think.in.java.StateMachine;
 import cn.think.in.java.entity.Command;
 import cn.think.in.java.entity.LogEntry;
+import com.alibaba.fastjson.JSON;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -17,18 +14,13 @@ import redis.clients.jedis.JedisPool;
  *
  * @author rensailong
  */
+@Slf4j
 public class RedisStateMachine implements StateMachine {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RedisStateMachine.class);
 
-    private static JedisPool jedisPool;
+    private JedisPool jedisPool;
 
-    static {
-        GenericObjectPoolConfig redisConfig = new GenericObjectPoolConfig();
-        redisConfig.setMaxTotal(100);
-        redisConfig.setMaxWaitMillis(10 * 1000);
-        redisConfig.setMaxIdle(1000);
-        redisConfig.setTestOnBorrow(true);
-        jedisPool = new JedisPool(redisConfig, "127.0.0.1", 6379);
+    private RedisStateMachine() {
+        init();
     }
 
     public static RedisStateMachine getInstance() {
@@ -38,6 +30,15 @@ public class RedisStateMachine implements StateMachine {
     private static class RedisStateMachineLazyHolder {
 
         private static final RedisStateMachine INSTANCE = new RedisStateMachine();
+    }
+
+    private void init() {
+        GenericObjectPoolConfig redisConfig = new GenericObjectPoolConfig();
+        redisConfig.setMaxTotal(100);
+        redisConfig.setMaxWaitMillis(10 * 1000);
+        redisConfig.setMaxIdle(100);
+        redisConfig.setTestOnBorrow(true);
+        jedisPool = new JedisPool(redisConfig, System.getProperty("redis.host", "127.0.0.1"), 6379);
     }
 
     @Override
@@ -52,7 +53,7 @@ public class RedisStateMachine implements StateMachine {
             String key = command.getKey();
             jedis.set(key.getBytes(), JSON.toJSONBytes(logEntry));
         } catch (Exception e) {
-            LOGGER.info(e.getMessage());
+            log.error(e.getMessage());
         } finally {
             if (jedis != null) {
                 jedis.close();
@@ -68,7 +69,7 @@ public class RedisStateMachine implements StateMachine {
             jedis = jedisPool.getResource();
             result = JSON.parseObject(jedis.get(key), LogEntry.class);
         } catch (Exception e) {
-            LOGGER.error("redis error ", e);
+            log.error("redis error ", e);
         } finally {
             if (jedis != null) {
                 jedis.close();
@@ -85,7 +86,7 @@ public class RedisStateMachine implements StateMachine {
             jedis = jedisPool.getResource();
             result = jedis.get(key);
         } catch (Exception e) {
-            LOGGER.error("redis error ", e);
+            log.error("redis error ", e);
         } finally {
             if (jedis != null) {
                 jedis.close();
@@ -101,7 +102,7 @@ public class RedisStateMachine implements StateMachine {
             jedis = jedisPool.getResource();
             jedis.set(key, value);
         } catch (Exception e) {
-            LOGGER.error("redis error ", e);
+            log.error("redis error ", e);
         } finally {
             if (jedis != null) {
                 jedis.close();
@@ -115,7 +116,7 @@ public class RedisStateMachine implements StateMachine {
         try {
             jedis.del(keys);
         } catch (Exception e) {
-            LOGGER.error("redis error ", e);
+            log.error("redis error ", e);
         } finally {
             if (jedis != null) {
                 jedis.close();
