@@ -1,5 +1,12 @@
 
 
+![visitors](https://visitor-badge.glitch.me/badge?page_id=stateIs0.lu-raft-kv&left_color=green&right_color=red)
+[![build status](https://travis-ci.com/stateis0/lu-raft-kv.svg?branch=master)](https://travis-ci.com/stateis0/lu-raft-kv)
+[![codecov](https://codecov.io/gh/stateis0/lu-raft-kv/branch/master/graph/badge.svg)](https://codecov.io/gh/stateis0/lu-raft-kv)
+![license](https://img.shields.io/github/license/stateis0/lu-raft-kv.svg)
+[![average time to resolve an issue](http://isitmaintained.com/badge/resolution/stateis0/lu-raft-kv.svg)](http://isitmaintained.com/project/stateis0/lu-raft-kv "average time to resolve an issue")
+[![percentage of issues still open](http://isitmaintained.com/badge/open/stateis0/lu-raft-kv.svg)](http://isitmaintained.com/project/stateis0/lu-raft-kv "percentage of issues still open")
+
 ## Lu-Raft-KV-Storage
 
 这是一个 Java 版本的 Raft(CP) KV  分布式存储实现. 可用于 Raft 初学者深入学习 Raft 协议. 
