@@ -60,9 +60,9 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
             node.matchIndexs.put(newPeer, 0L);
 
             for (long i = 0; i < node.logModule.getLastIndex(); i++) {
-                LogEntry e = node.logModule.read(i);
-                if (e != null) {
-                    node.replication(newPeer, e);
+                LogEntry entry = node.logModule.read(i);
+                if (entry != null) {
+                    node.replication(newPeer, entry);
                 }
             }
 

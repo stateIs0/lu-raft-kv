@@ -19,6 +19,7 @@ package cn.think.in.java;
 import cn.think.in.java.common.NodeConfig;
 import cn.think.in.java.constant.StateMachineSaveType;
 import cn.think.in.java.impl.DefaultNode;
+import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
@@ -38,7 +39,14 @@ public class RaftNodeBootStrap {
     }
 
     public static void boot() throws Throwable {
-        String[] peerAddr = {"localhost:8775", "localhost:8776", "localhost:8777", "localhost:8778", "localhost:8779"};
+        String property = System.getProperty("cluster.addr.list");
+        String[] peerAddr;
+
+        if (StringUtil.isNullOrEmpty(property)) {
+            peerAddr = new String[]{"localhost:8775", "localhost:8776", "localhost:8777", "localhost:8778", "localhost:8779"};
+        } else {
+            peerAddr = property.split(",");
+        }
 
         NodeConfig config = new NodeConfig();
 
