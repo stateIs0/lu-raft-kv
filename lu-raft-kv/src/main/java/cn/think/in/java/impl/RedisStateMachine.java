@@ -55,6 +55,7 @@ public class RedisStateMachine implements StateMachine {
         redisConfig.setMaxWaitMillis(10 * 1000);
         redisConfig.setMaxIdle(100);
         redisConfig.setTestOnBorrow(true);
+        // todo config
         jedisPool = new JedisPool(redisConfig, System.getProperty("redis.host", "127.0.0.1"), 6379);
     }
 
@@ -66,9 +67,7 @@ public class RedisStateMachine implements StateMachine {
 
     @Override
     public void apply(LogEntry logEntry) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
+        try (Jedis jedis = jedisPool.getResource()) {
             Command command = logEntry.getCommand();
             if (command == null) {
                 throw new IllegalArgumentException("command can not be null, logEntry : " + logEntry.toString());
@@ -77,26 +76,16 @@ public class RedisStateMachine implements StateMachine {
             jedis.set(key.getBytes(), JSON.toJSONBytes(logEntry));
         } catch (Exception e) {
             log.error(e.getMessage());
-        } finally {
-            if (jedis != null) {
-                jedis.close();
-            }
         }
     }
 
     @Override
     public LogEntry get(String key) {
         LogEntry result = null;
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
+        try (Jedis jedis = jedisPool.getResource()) {
             result = JSON.parseObject(jedis.get(key), LogEntry.class);
         } catch (Exception e) {
             log.error("redis error ", e);
-        } finally {
-            if (jedis != null) {
-                jedis.close();
-            }
         }
         return result;
     }
@@ -104,46 +93,29 @@ public class RedisStateMachine implements StateMachine {
     @Override
     public String getString(String key) {
         String result = null;
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
+        try (Jedis jedis = jedisPool.getResource()) {
             result = jedis.get(key);
         } catch (Exception e) {
             log.error("redis error ", e);
-        } finally {
-            if (jedis != null) {
-                jedis.close();
-            }
         }
         return result;
     }
 
     @Override
     public void setString(String key, String value) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
+        try (Jedis jedis = jedisPool.getResource()) {
             jedis.set(key, value);
         } catch (Exception e) {
             log.error("redis error ", e);
-        } finally {
-            if (jedis != null) {
-                jedis.close();
-            }
         }
     }
 
     @Override
     public void delString(String... keys) {
-        Jedis jedis = null;
-        try {
+        try (Jedis jedis = jedisPool.getResource()) {
             jedis.del(keys);
         } catch (Exception e) {
             log.error("redis error ", e);
-        } finally {
-            if (jedis != null) {
-                jedis.close();
-            }
         }
     }
 }
