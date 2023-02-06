@@ -40,7 +40,7 @@ public class RocksDBTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStateMachine.class);
 
-    private String dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
+    private String dbDir = "./rocksDB-raft/" + System.getProperty("server.port");
     private String stateMachineDir = dbDir + "/test";
 
     public RocksDB machineDb;
@@ -53,7 +53,7 @@ public class RocksDBTest {
 
     public RocksDBTest() {
         try {
-            System.setProperty("serverPort", "8078");
+            System.setProperty("server.port", "8078");
             File file = new File(stateMachineDir);
             if (!file.exists()) {
                 file.mkdirs();

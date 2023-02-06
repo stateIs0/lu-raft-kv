@@ -43,7 +43,7 @@ public class DefaultStateMachine implements StateMachine {
 
 
     private DefaultStateMachine() {
-        dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
+        dbDir = "./rocksDB-raft/" + System.getProperty("server.port");
 
         if (stateMachineDir == null) {
             stateMachineDir = dbDir + "/stateMachine";

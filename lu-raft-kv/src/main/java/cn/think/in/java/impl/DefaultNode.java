@@ -141,7 +141,6 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
 
     private static class DefaultNodeLazyHolder {
-
         private static final DefaultNode INSTANCE = new DefaultNode();
     }
 
@@ -589,21 +588,20 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
             log.info("futureArrayList.size() : {}", futureArrayList.size());
             // 等待结果.
-            for (Future future : futureArrayList) {
+            for (Future<RvoteResult> future : futureArrayList) {
                 RaftThreadPool.submit(() -> {
                     try {
-                        @SuppressWarnings("unchecked")
-                        Response<RvoteResult> response = (Response<RvoteResult>) future.get(3000, MILLISECONDS);
-                        if (response == null) {
+                        RvoteResult result = future.get(3000, MILLISECONDS);
+                        if (result == null) {
                             return -1;
                         }
-                        boolean isVoteGranted = response.getResult().isVoteGranted();
+                        boolean isVoteGranted = result.isVoteGranted();
 
                         if (isVoteGranted) {
                             success2.incrementAndGet();
                         } else {
                             // 更新自己的任期.
-                            long resTerm = response.getResult().getTerm();
+                            long resTerm =result.getTerm();
                             if (resTerm >= currentTerm) {
                                 currentTerm = resTerm;
                             }

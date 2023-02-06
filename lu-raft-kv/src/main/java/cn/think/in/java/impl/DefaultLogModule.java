@@ -55,7 +55,7 @@ public class DefaultLogModule implements LogModule {
 
     private DefaultLogModule() {
         if (dbDir == null) {
-            dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
+            dbDir = "./rocksDB-raft/" + System.getProperty("server.port");
         }
         if (logsDir == null) {
             logsDir = dbDir + "/logModule";

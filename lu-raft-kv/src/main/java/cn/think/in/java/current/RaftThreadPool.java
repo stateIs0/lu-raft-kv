@@ -57,8 +57,7 @@ public class RaftThreadPool {
         ss.scheduleWithFixedDelay(r, 0, delay, TimeUnit.MILLISECONDS);
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> Future<T> submit(Callable r) {
+    public static <T> Future submit(Callable r) {
         return te.submit(r);
     }
 
