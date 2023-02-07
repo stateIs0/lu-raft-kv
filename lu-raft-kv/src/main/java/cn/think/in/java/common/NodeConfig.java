@@ -39,6 +39,7 @@ public class NodeConfig {
 
     /** 所有节点地址. */
     public List<String> peerAddrs;
+
     /**
      *  状态快照存储类型
      */

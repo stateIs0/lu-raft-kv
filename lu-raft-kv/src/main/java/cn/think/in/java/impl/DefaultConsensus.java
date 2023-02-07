@@ -52,7 +52,7 @@ public class DefaultConsensus implements Consensus {
     }
 
     /**
-     * 请求投票 RPC
+     * 处理投票请求--RPC
      *
      * 接收者实现：
      *      如果term < currentTerm返回 false （5.2 节）

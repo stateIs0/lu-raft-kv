@@ -30,21 +30,18 @@ public class RaftThreadPool {
     private static final long keepTime = 1000 * 60;
     private static TimeUnit keepTimeUnit = TimeUnit.MILLISECONDS;
 
-    private static ScheduledExecutorService ss = getScheduled();
-    private static ThreadPoolExecutor te = getThreadPool();
+    private static final ScheduledExecutorService ss;
+    private static final ThreadPoolExecutor te;
 
-    private static ThreadPoolExecutor getThreadPool() {
-        return new RaftThreadPoolExecutor(
-            cup,
-            maxPoolSize,
-            keepTime,
-            keepTimeUnit,
-            new LinkedBlockingQueue<>(queueSize),
-            new NameThreadFactory());
-    }
-
-    private static ScheduledExecutorService getScheduled() {
-        return new ScheduledThreadPoolExecutor(cup, new NameThreadFactory());
+    static {
+        ss = new ScheduledThreadPoolExecutor(cup, new NameThreadFactory());
+        te = new RaftThreadPoolExecutor(
+                    cup,
+                    maxPoolSize,
+                    keepTime,
+                    keepTimeUnit,
+                    new LinkedBlockingQueue<>(queueSize),
+                    new NameThreadFactory());
     }
 
 

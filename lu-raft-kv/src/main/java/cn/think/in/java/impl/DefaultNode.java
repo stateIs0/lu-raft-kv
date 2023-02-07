@@ -54,9 +54,15 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @Slf4j
 public class DefaultNode implements Node, ClusterMembershipChanges {
 
-    /** 选举时间间隔基数 */
-    public volatile long electionTime = 15 * 1000;
-    /** 上一次选举时间 */
+    /**
+     * 选举超时时间
+     * 如果一个跟随者在该时间内没有收到来自领导者/候选者的rpc请求，则参与竞选
+     * 单位: ms
+     */
+    public volatile long electionTimeout = 1000 * 6;
+    /**
+     * 上一次选举时间；收到领导者rpc调用时该值会更新
+     */
     public volatile long preElectionTime = 0;
 
     /** 上次一心跳时间戳 */
@@ -64,7 +70,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
     /** 心跳间隔基数 */
     public final long heartBeatTick = 5 * 1000;
 
-
+    /** 发送心跳信号 */
     private HeartBeatTask heartBeatTask = new HeartBeatTask();
     private ElectionTask electionTask = new ElectionTask();
     private ReplicationFailQueueConsumer replicationFailQueueConsumer = new ReplicationFailQueueConsumer();
@@ -118,7 +124,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     public RpcService rpcServer;
 
-    public RpcClient rpcClient = new DefaultRpcClient();
+    private RpcClient rpcClient = new DefaultRpcClient();
 
     public StateMachine stateMachine;
 
@@ -153,8 +159,17 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
         consensus = new DefaultConsensus(this);
         delegate = new ClusterMembershipChangesImpl(this);
 
+        /**
+         * 创建重复延迟任务；任务完成后重新投入队列
+         */
         RaftThreadPool.scheduleWithFixedDelay(heartBeatTask, 500);
+        /**
+         * 创建重复定期任务；任务在固定的时间点执行（不会并发）
+         */
         RaftThreadPool.scheduleAtFixedRate(electionTask, 6000, 500);
+        /**
+         * 创建常规任务，只执行一次
+         */
         RaftThreadPool.execute(replicationFailQueueConsumer);
 
         LogEntry logEntry = logModule.getLast();
@@ -186,7 +201,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     @Override
     public RvoteResult handlerRequestVote(RvoteParam param) {
-        log.warn("handlerRequestVote will be invoke, param info : {}", param);
+        log.warn("vote process for {}, its term {} ", param.getCandidateId(), param.getTerm());
         return consensus.requestVote(param);
     }
 
@@ -531,17 +546,17 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
             long current = System.currentTimeMillis();
             // 基于 RAFT 的随机时间,解决冲突.
-            electionTime = electionTime + ThreadLocalRandom.current().nextInt(50);
-            if (current - preElectionTime < electionTime) {
+            electionTimeout = electionTimeout + ThreadLocalRandom.current().nextInt(100);
+            if (current - preElectionTime < electionTimeout) {
                 return;
             }
             status = NodeStatus.CANDIDATE;
-            log.error("node {} will become CANDIDATE and start election leader, current term : [{}], LastEntry : [{}]",
+            currentTerm = currentTerm + 1;
+            log.error("node {} become CANDIDATE and start election, its term : [{}], LastEntry : [{}]",
                     peerSet.getSelf(), currentTerm, logModule.getLast());
 
             preElectionTime = System.currentTimeMillis() + ThreadLocalRandom.current().nextInt(200) + 150;
 
-            currentTerm = currentTerm + 1;
             // 推荐自己.
             votedFor = peerSet.getSelf().getAddr();
 
@@ -549,11 +564,11 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
             ArrayList<Future<RvoteResult>> futureArrayList = new ArrayList<>();
 
-            log.info("peerList size : {}, peer list content : {}", peers.size(), peers);
+            //log.info("peerList size : {}, peer list content : {}", peers.size(), peers);
 
             // 发送请求
             for (Peer peer : peers) {
-
+                // 执行rpc调用并加入list
                 futureArrayList.add(RaftThreadPool.submit(() -> {
                     long lastTerm = 0L;
                     LogEntry last = logModule.getLast();
@@ -575,7 +590,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                             .build();
 
                     try {
-                        return getRpcClient().<RvoteResult>send(request);
+                        return rpcClient.<RvoteResult>send(request);
                     } catch (RaftRemotingException e) {
                         log.error("ElectionTask RPC Fail , URL : " + request.getUrl());
                         return null;

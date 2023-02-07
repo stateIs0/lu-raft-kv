@@ -74,7 +74,7 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
                         .obj(newPeer)
                         .build();
 
-                Result result = node.rpcClient.send(request);
+                Result result = node.getRpcClient().send(request);
                 if (result != null && result.getStatus() == Result.Status.SUCCESS.getCode()) {
                     LOGGER.info("replication config success, peer : {}, newServer : {}", newPeer, newPeer);
                 } else {
