@@ -55,6 +55,7 @@ public class RaftThreadPool {
     }
 
     public static <T> Future submit(Callable r) {
+        // 将 r 的返回值封装成 Future<T>
         return te.submit(r);
     }
 

@@ -62,28 +62,29 @@ public class DefaultConsensus implements Consensus {
     public RvoteResult requestVote(RvoteParam param) {
         try {
             RvoteResult.Builder builder = RvoteResult.newBuilder();
-            if (!voteLock.tryLock()) {
-                return builder.term(node.getCurrentTerm()).voteGranted(false).build();
-            }
+//            if (!voteLock.tryLock()) {
+//                return builder.term(node.getCurrentTerm()).voteGranted(false).build();
+//            }
+            voteLock.lock();
 
             // 对方任期没有自己新
             if (param.getTerm() < node.getCurrentTerm()) {
+                // 返回投票结果的同时更新对方的term
+                LOGGER.info("node {} decline to vote for candidate {} because of smaller term", node.peerSet.getSelf().getAddr(), param.getCandidateId());
                 return builder.term(node.getCurrentTerm()).voteGranted(false).build();
             }
 
             // (当前节点并没有投票 或者 已经投票过了且是对方节点) && 对方日志和自己一样新
-            LOGGER.info("node {} current vote for [{}], param candidateId : {}", node.peerSet.getSelf(), node.getVotedFor(), param.getCandidateId());
-            LOGGER.info("node {} current term {}, peer term : {}", node.peerSet.getSelf(), node.getCurrentTerm(), param.getTerm());
+//            LOGGER.info("node {} current vote for [{}], param candidateId : {}", node.peerSet.getSelf(), node.getVotedFor(), param.getCandidateId());
+//            LOGGER.info("node {} current term {}, peer term : {}", node.peerSet.getSelf(), node.getCurrentTerm(), param.getTerm());
 
             if ((StringUtil.isNullOrEmpty(node.getVotedFor()) || node.getVotedFor().equals(param.getCandidateId()))) {
 
                 if (node.getLogModule().getLast() != null) {
-                    // 对方没有自己新
-                    if (node.getLogModule().getLast().getTerm() > param.getLastLogTerm()) {
-                        return RvoteResult.fail();
-                    }
-                    // 对方没有自己新
-                    if (node.getLogModule().getLastIndex() > param.getLastLogIndex()) {
+                    // 候选者的日志不是最新的，拒绝投票
+                    if (node.getLogModule().getLast().getTerm() > param.getLastLogTerm() ||
+                            node.getLogModule().getLastIndex() > param.getLastLogIndex()) {
+                        LOGGER.info("node {} decline to vote for candidate {} because of older logs", node.peerSet.getSelf().getAddr(), param.getCandidateId());
                         return RvoteResult.fail();
                     }
                 }
@@ -94,10 +95,12 @@ public class DefaultConsensus implements Consensus {
                 node.peerSet.setLeader(new Peer(param.getCandidateId()));
                 node.setCurrentTerm(param.getTerm());
                 node.setVotedFor(param.getServerId());
+                LOGGER.info("node {} vote for candidate: {}", node.peerSet.getSelf(), param.getCandidateId());
                 // 返回成功
                 return builder.term(node.currentTerm).voteGranted(true).build();
             }
 
+            LOGGER.info("node {} decline to vote for candidate {} because there is no vote available", node.peerSet.getSelf().getAddr(), param.getCandidateId());
             return builder.term(node.currentTerm).voteGranted(false).build();
 
         } finally {

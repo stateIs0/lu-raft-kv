@@ -42,7 +42,7 @@ public class DefaultRpcClient implements RpcClient {
             result = (Response<R>) CLIENT.invokeSync(request.getUrl(), request, timeout);
             return result.getResult();
         } catch (RemotingException e) {
-            log.error(e.getMessage());
+            //log.error(e.getMessage());
             throw new RaftRemotingException("rpc RaftRemotingException ", e);
         } catch (InterruptedException e) {
             // ignore

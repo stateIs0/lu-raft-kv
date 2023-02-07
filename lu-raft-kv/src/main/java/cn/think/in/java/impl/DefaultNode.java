@@ -72,7 +72,9 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     /** 发送心跳信号 */
     private HeartBeatTask heartBeatTask = new HeartBeatTask();
+
     private ElectionTask electionTask = new ElectionTask();
+
     private ReplicationFailQueueConsumer replicationFailQueueConsumer = new ReplicationFailQueueConsumer();
 
     private LinkedBlockingQueue<ReplicationFailModel> replicationFailQueue = new LinkedBlockingQueue<>(2048);
@@ -198,10 +200,9 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
         rpcServer = new DefaultRpcServiceImpl(config.selfPort, this);
     }
 
-
     @Override
     public RvoteResult handlerRequestVote(RvoteParam param) {
-        log.warn("vote process for {}, its term {} ", param.getCandidateId(), param.getTerm());
+        log.info("vote process for {}, its term {} ", param.getCandidateId(), param.getTerm());
         return consensus.requestVote(param);
     }
 
@@ -210,7 +211,6 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
         if (param.getEntries() != null) {
             log.warn("node receive node {} append entry, entry content = {}", param.getLeaderId(), param.getEntries());
         }
-
         return consensus.appendEntries(param);
     }
 
@@ -552,7 +552,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             }
             status = NodeStatus.CANDIDATE;
             currentTerm = currentTerm + 1;
-            log.error("node {} become CANDIDATE and start election, its term : [{}], LastEntry : [{}]",
+            log.info("node {} become CANDIDATE and start election, its term : [{}], LastEntry : [{}]",
                     peerSet.getSelf(), currentTerm, logModule.getLast());
 
             preElectionTime = System.currentTimeMillis() + ThreadLocalRandom.current().nextInt(200) + 150;
@@ -568,7 +568,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
             // 发送请求
             for (Peer peer : peers) {
-                // 执行rpc调用并加入list
+                // 执行rpc调用并加入list；添加的是submit的返回值
                 futureArrayList.add(RaftThreadPool.submit(() -> {
                     long lastTerm = 0L;
                     LogEntry last = logModule.getLast();
@@ -597,17 +597,21 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                     }
                 }));
             }
+            log.info("futureArrayList.size() : {}", futureArrayList.size());
 
+            /** 统计赞同票的数量 */
             AtomicInteger success2 = new AtomicInteger(0);
+
+            /** 计数器 */
             CountDownLatch latch = new CountDownLatch(futureArrayList.size());
 
-            log.info("futureArrayList.size() : {}", futureArrayList.size());
-            // 等待结果.
+            // 获取结果.
             for (Future<RvoteResult> future : futureArrayList) {
                 RaftThreadPool.submit(() -> {
                     try {
-                        RvoteResult result = future.get(3000, MILLISECONDS);
+                        RvoteResult result = future.get(1000, MILLISECONDS);
                         if (result == null) {
+                            // rpc调用失败或任务超时
                             return -1;
                         }
                         boolean isVoteGranted = result.isVoteGranted();
@@ -623,7 +627,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                         }
                         return 0;
                     } catch (Exception e) {
-                        log.error("future.get exception , e : ", e);
+                        log.error("future.get exception");
                         return -1;
                     } finally {
                         latch.countDown();
@@ -632,20 +636,24 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             }
 
             try {
-                // 稍等片刻
+                // 等待子线程完成选票统计
                 latch.await(3500, MILLISECONDS);
             } catch (InterruptedException e) {
                 log.warn("InterruptedException By Master election Task");
             }
 
-            int success = success2.get();
-            log.info("node {} maybe become leader , success count = {} , status : {}", peerSet.getSelf(), success, NodeStatus.Enum.value(status));
+            // 总票数（算上自己投的一票）
+            int success = success2.get() + 1;
+
+            //log.info("node {} maybe become leader , success count = {} , status : {}", peerSet.getSelf(), success, NodeStatus.Enum.value(status));
+
             // 如果投票期间,有其他服务器发送 appendEntry , 就可能变成 follower ,这时,应该停止.
             if (status == NodeStatus.FOLLOWER) {
+                log.info("node {} election stops with new appendEntry", peerSet.getSelf());
                 return;
             }
-            // 加上自身.
-            if (success >= peers.size() / 2) {
+            // 需要获得超过半数节点的投票
+            if (success * 2 > peers.size() + 1) {
                 log.warn("node {} become leader ", peerSet.getSelf());
                 status = LEADER;
                 peerSet.setLeader(peerSet.getSelf());
@@ -653,6 +661,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                 becomeLeaderToDoThing();
             } else {
                 // else 重新选举
+                log.info("node {} election fail, success count = {} ", peerSet.getSelf(), success);
                 votedFor = "";
             }
 
@@ -671,7 +680,6 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             matchIndexs.put(peer, 0L);
         }
     }
-
 
     class HeartBeatTask implements Runnable {
 

@@ -45,7 +45,6 @@ public class DefaultRpcServiceImpl implements RpcService {
 
         // 实现用户请求处理器
         rpcServer.registerUserProcessor(new RaftUserProcessor<Request>() {
-
             @Override
             public Object handleRequest(BizContext bizCtx, Request request) {
                 return handlerRequest(request);

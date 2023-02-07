@@ -25,7 +25,9 @@ import raft.client.ClientKVReq;
 import java.io.Serializable;
 
 /**
+ * RPC调用请求体
  * @author 莫那·鲁道
+ *
  */
 @Builder
 @Data
