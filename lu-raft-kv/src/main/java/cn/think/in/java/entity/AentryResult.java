@@ -23,8 +23,8 @@ import lombok.ToString;
 import java.io.Serializable;
 
 /**
- *
- * 附加 RPC 日志返回值.
+ * 添加日志请求的响应
+ * append entry协议
  *
  * @author 莫那·鲁道
  */
@@ -33,7 +33,7 @@ import java.io.Serializable;
 @ToString
 public class AentryResult implements Serializable {
 
-    /** 当前的任期号，用于领导人去更新自己 */
+    /** 被请求方的任期号，用于领导人去更新自己 */
     long term;
 
     /** 跟随者包含了匹配上 prevLogIndex 和 prevLogTerm 的日志时为真  */

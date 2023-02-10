@@ -47,6 +47,7 @@ public class DefaultLogModule implements LogModule {
     public String dbDir;
     public String logsDir;
 
+    /** 存储日志的本地数据库 */
     private RocksDB logDb;
 
     public final static byte[] LAST_INDEX_KEY = "LAST_INDEX_KEY".getBytes();
@@ -67,12 +68,14 @@ public class DefaultLogModule implements LogModule {
         File file = new File(logsDir);
         boolean success = false;
         if (!file.exists()) {
+            // 创建日志目录
             success = file.mkdirs();
         }
         if (success) {
             log.warn("make a new dir : " + logsDir);
         }
         try {
+            // 使用RocksDB打开日志文件
             logDb = RocksDB.open(options, logsDir);
         } catch (RocksDBException e) {
             log.warn(e.getMessage());
@@ -100,6 +103,7 @@ public class DefaultLogModule implements LogModule {
     }
 
     /**
+     * 以logEntry的index为key，将logEntry对象的序列化值存入RocksDB
      * logEntry 的 index 就是 key. 严格保证递增.
      *
      * @param logEntry
@@ -109,12 +113,14 @@ public class DefaultLogModule implements LogModule {
 
         boolean success = false;
         try {
-            lock.tryLock(3000, MILLISECONDS);
+            //lock.tryLock(3000, MILLISECONDS);
+            lock.lock();
             logEntry.setIndex(getLastIndex() + 1);
+            // [k, v] = [index, logEntry]
             logDb.put(logEntry.getIndex().toString().getBytes(), JSON.toJSONBytes(logEntry));
             success = true;
             log.info("DefaultLogModule write rocksDB success, logEntry info : [{}]", logEntry);
-        } catch (RocksDBException | InterruptedException e) {
+        } catch (RocksDBException e) {
             log.warn(e.getMessage());
         } finally {
             if (success) {
@@ -139,19 +145,24 @@ public class DefaultLogModule implements LogModule {
         return null;
     }
 
+    /**
+     * 删除 startIndex ~ lastIndex 之间的日志
+     * @param startIndex
+     */
     @Override
     public void removeOnStartIndex(Long startIndex) {
         boolean success = false;
         int count = 0;
         try {
-            lock.tryLock(3000, MILLISECONDS);
+            //lock.tryLock(3000, MILLISECONDS);
+            lock.lock();
             for (long i = startIndex; i <= getLastIndex(); i++) {
                 logDb.delete(String.valueOf(i).getBytes());
                 ++count;
             }
             success = true;
             log.warn("rocksDB removeOnStartIndex success, count={} startIndex={}, lastIndex={}", count, startIndex, getLastIndex());
-        } catch (InterruptedException | RocksDBException e) {
+        } catch (RocksDBException e) {
             log.warn(e.getMessage());
         } finally {
             if (success) {
@@ -176,6 +187,10 @@ public class DefaultLogModule implements LogModule {
         return null;
     }
 
+    /**
+     * 获取最后一个日志的index，没有日志时返回-1
+     * @return
+     */
     @Override
     public Long getLastIndex() {
         byte[] lastIndex = "-1".getBytes();

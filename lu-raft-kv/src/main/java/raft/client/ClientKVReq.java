@@ -24,7 +24,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- *
+ * 客户端协议——请求体
  * @author 莫那·鲁道
  */
 @Getter
@@ -33,13 +33,16 @@ import lombok.ToString;
 @Builder
 public class ClientKVReq implements Serializable {
 
+    /** 操作类型 */
     public static int PUT = 0;
     public static int GET = 1;
 
     int type;
 
+    /** 键 */
     String key;
 
+    /** 值 */
     String value;
 
     public enum Type {

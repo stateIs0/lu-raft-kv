@@ -24,7 +24,7 @@ import lombok.ToString;
 import java.io.Serializable;
 
 /**
- *
+ * 状态机协议
  * @author 莫那·鲁道
  */
 @Getter

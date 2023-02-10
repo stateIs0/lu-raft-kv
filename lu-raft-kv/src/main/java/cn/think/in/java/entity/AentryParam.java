@@ -26,7 +26,8 @@ import java.io.Serializable;
 
 /**
  *
- * 附加日志 RPC 参数. handlerAppendEntries
+ * 添加日志请求的参数. handlerAppendEntries
+ * append entry协议
  *
  * @author 莫那·鲁道
  * @see Consensus#appendEntries(AentryParam)

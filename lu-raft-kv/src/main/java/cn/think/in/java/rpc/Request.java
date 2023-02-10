@@ -26,6 +26,7 @@ import java.io.Serializable;
 
 /**
  * RPC调用请求体
+ * raft rpc协议
  * @author 莫那·鲁道
  *
  */

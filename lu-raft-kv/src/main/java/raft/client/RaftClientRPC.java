@@ -42,18 +42,21 @@ public class RaftClientRPC {
     }
 
     /**
-     * @param key
+     * @param key 查询的key值
      * @return
      */
     public LogEntry get(String key) {
+        // raft客户端协议请求体
         ClientKVReq obj = ClientKVReq.builder().key(key).type(ClientKVReq.GET).build();
 
         int index = (int) (count.incrementAndGet() % list.size());
 
         String addr = list.get(index);
 
-        LogEntry response;
+        // rpc协议请求体
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
+
+        LogEntry response;
         try {
             response = CLIENT.send(r);
         } catch (Exception e) {

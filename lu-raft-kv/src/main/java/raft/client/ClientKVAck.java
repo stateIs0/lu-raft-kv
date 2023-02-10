@@ -23,7 +23,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- *
+ * 客户端协议——响应
  * @author 莫那·鲁道
  */
 @Getter
@@ -31,6 +31,7 @@ import lombok.ToString;
 @ToString
 public class ClientKVAck implements Serializable {
 
+    // 响应数据
     Object result;
 
     public ClientKVAck(Object result) {

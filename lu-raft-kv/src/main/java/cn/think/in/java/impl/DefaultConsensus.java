@@ -94,7 +94,7 @@ public class DefaultConsensus implements Consensus {
                 // 更新
                 node.peerSet.setLeader(new Peer(param.getCandidateId()));
                 node.setCurrentTerm(param.getTerm());
-                node.setVotedFor(param.getServerId());
+                node.setVotedFor(param.getCandidateId());
                 LOGGER.info("node {} vote for candidate: {}", node.peerSet.getSelf(), param.getCandidateId());
                 // 返回成功
                 return builder.term(node.currentTerm).voteGranted(true).build();
