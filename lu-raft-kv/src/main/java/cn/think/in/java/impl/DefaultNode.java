@@ -697,6 +697,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
     /**
      * 发送心跳信号，通过线程池执行
      * 如果收到了来自任期更大的节点的响应，则转为跟随者
+     * RPC请求类型为A_ENTRIES
      */
     class HeartBeatTask implements Runnable {
 

@@ -103,6 +103,7 @@ public class DefaultLogModule implements LogModule {
     }
 
     /**
+     * 把entry添加到日志文件尾部
      * 以logEntry的index为key，将logEntry对象的序列化值存入RocksDB
      * logEntry 的 index 就是 key. 严格保证递增.
      *
@@ -146,7 +147,7 @@ public class DefaultLogModule implements LogModule {
     }
 
     /**
-     * 删除 startIndex ~ lastIndex 之间的日志
+     * 删除index在[startIndex, lastIndex]内的日志
      * @param startIndex
      */
     @Override
@@ -171,7 +172,6 @@ public class DefaultLogModule implements LogModule {
             lock.unlock();
         }
     }
-
 
     @Override
     public LogEntry getLast() {

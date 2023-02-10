@@ -123,12 +123,10 @@ public class DefaultConsensus implements Consensus {
     public AentryResult appendEntries(AentryParam param) {
         AentryResult result = AentryResult.fail();
         try {
-            if (!appendLock.tryLock()) {
-                return result;
-            }
-
+            appendLock.lock();
             result.setTerm(node.getCurrentTerm());
-            // 不够格
+
+            // 请求方任期较低，直接拒绝
             if (param.getTerm() < node.getCurrentTerm()) {
                 return result;
             }
@@ -138,13 +136,13 @@ public class DefaultConsensus implements Consensus {
             node.peerSet.setLeader(new Peer(param.getLeaderId()));
 
             // 够格
-            if (param.getTerm() >= node.getCurrentTerm()) {
-                LOGGER.debug("node {} become FOLLOWER, currentTerm : {}, param Term : {}, param serverId",
-                    node.peerSet.getSelf(), node.currentTerm, param.getTerm(), param.getServerId());
-                // 认怂
+            if (node.status != NodeStatus.FOLLOWER) {
+                LOGGER.info("node {} become FOLLOWER, currentTerm : {}, param Term : {}",
+                    node.peerSet.getSelf(), node.currentTerm, param.getTerm());
+                // 收到了新领导者的append entry请求，转为跟随者
                 node.status = NodeStatus.FOLLOWER;
             }
-            // 使用对方的 term.
+            // 更新term
             node.setCurrentTerm(param.getTerm());
 
             //心跳
@@ -154,52 +152,45 @@ public class DefaultConsensus implements Consensus {
                 return AentryResult.newBuilder().term(node.getCurrentTerm()).success(true).build();
             }
 
-            // 真实日志
-            // 第一次
+            // TODO no-op空日志
+
+            // 1. preLog匹配判断
             if (node.getLogModule().getLastIndex() != 0 && param.getPrevLogIndex() != 0) {
-                LogEntry logEntry;
-                if ((logEntry = node.getLogModule().read(param.getPrevLogIndex())) != null) {
-                    // 如果日志在 prevLogIndex 位置处的日志条目的任期号和 prevLogTerm 不匹配，则返回 false
-                    // 需要减小 nextIndex 重试.
-                    if (logEntry.getTerm() != param.getPreLogTerm()) {
+                LogEntry preEntry = node.getLogModule().read(param.getPrevLogIndex());
+                if (preEntry == null) {
+                    // 日志不存在，即index不匹配
+                    return result;
+                } else {
+                    if (preEntry.getTerm() != param.getPreLogTerm()) {
+                        // 日志存在（index匹配），但任期号不匹配
                         return result;
                     }
-                } else {
-                    // index 不对, 需要递减 nextIndex 重试.
-                    return result;
                 }
-
             }
 
-            // 如果已经存在的日志条目和新的产生冲突（索引值相同但是任期号不同），删除这一条和之后所有的
-            LogEntry existLog = node.getLogModule().read(((param.getPrevLogIndex() + 1)));
-            if (existLog != null && existLog.getTerm() != param.getEntries()[0].getTerm()) {
-                // 删除这一条和之后所有的, 然后写入日志和状态机.
-                node.getLogModule().removeOnStartIndex(param.getPrevLogIndex() + 1);
-            } else if (existLog != null) {
-                // 已经有日志了, 不能重复写入.
-                result.setSuccess(true);
-                return result;
+            // 2. 清理多余的旧日志
+            long curIdx = param.getPrevLogIndex() + 1;
+            if (node.getLogModule().read(curIdx) != null){
+                node.getLogModule().removeOnStartIndex(curIdx);
             }
 
-            // 写进日志并且应用到状态机
-            for (LogEntry entry : param.getEntries()) {
-                node.getLogModule().write(entry);
-                node.stateMachine.apply(entry);
-                result.setSuccess(true);
+            // 3. 追加日志到本地文件
+            LogEntry[] entries = param.getEntries();
+            for (LogEntry logEntry : entries) {
+                node.getLogModule().write(logEntry);
             }
 
-            //如果 leaderCommit > commitIndex，令 commitIndex 等于 leaderCommit 和 新日志条目索引值中较小的一个
-            if (param.getLeaderCommit() > node.getCommitIndex()) {
-                int commitIndex = (int) Math.min(param.getLeaderCommit(), node.getLogModule().getLastIndex());
-                node.setCommitIndex(commitIndex);
-                node.setLastApplied(commitIndex);
+            // 4. 旧日志提交
+            long nextCommit = node.getCommitIndex() + 1;
+            while (nextCommit <= param.getLeaderCommit()){
+                node.stateMachine.apply(node.getLogModule().read(nextCommit));
             }
+            node.setCommitIndex(nextCommit - 1);
+            node.setLastApplied(nextCommit - 1);
 
+            // 5. 同意append entry请求
+            result.setSuccess(true);
             result.setTerm(node.getCurrentTerm());
-
-            node.status = NodeStatus.FOLLOWER;
-            // TODO, 是否应当在成功回复之后, 才正式提交? 防止 leader "等待回复"过程中 挂掉.
             return result;
         } finally {
             appendLock.unlock();

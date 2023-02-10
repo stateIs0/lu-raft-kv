@@ -44,10 +44,7 @@ public class DefaultStateMachine implements StateMachine {
 
     private DefaultStateMachine() {
         dbDir = "./rocksDB-raft/" + System.getProperty("server.port");
-
-        if (stateMachineDir == null) {
-            stateMachineDir = dbDir + "/stateMachine";
-        }
+        stateMachineDir = dbDir + "/stateMachine";
         RocksDB.loadLibrary();
 
         File file = new File(stateMachineDir);
@@ -84,7 +81,6 @@ public class DefaultStateMachine implements StateMachine {
     }
 
     private static class DefaultStateMachineLazyHolder {
-
         private static final DefaultStateMachine INSTANCE = new DefaultStateMachine();
     }
 
