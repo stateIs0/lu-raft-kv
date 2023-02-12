@@ -100,16 +100,6 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
     /** 日志条目集；每一个条目包含一个用户状态机执行的指令，和收到时的任期号 */
     LogModule logModule;
 
-
-
-    /* ============ 所有服务器上经常变的 ============= */
-
-    /** 已知的最大的已经被提交的日志条目的索引值 */
-    volatile long commitIndex;
-
-    /** 最后被应用到状态机的日志条目索引值（初始化为 0，持续递增) */
-    volatile long lastApplied = 0;
-
     /* ========== 在领导人里经常改变的(选举后重新初始化) ================== */
 
     /** 对于每一个服务器，需要发送给他的下一个日志条目的索引值（初始化为领导人最后索引值加一） */
@@ -198,6 +188,15 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
         }
 
         rpcServer = new DefaultRpcServiceImpl(config.selfPort, this);
+    }
+
+
+    public void setCommitIndex(long index){
+        stateMachine.setCommit(index);
+    }
+
+    public long getCommitIndex(){
+        return stateMachine.getCommit();
     }
 
     @Override
@@ -309,20 +308,19 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             median = matchIndexList.size() / 2;
         }
         Long N = matchIndexList.get(median);
-        if (N > commitIndex) {
+        if (N > getCommitIndex()) {
             LogEntry entry = logModule.read(N);
             if (entry != null && entry.getTerm() == currentTerm) {
-                commitIndex = N;
+                setCommitIndex(N);
             }
         }
 
         //  响应客户端(成功一半及以上)
         if (success.get() * 2 >= count) {
             // 更新
-            commitIndex = logEntry.getIndex();
+            setCommitIndex(logEntry.getIndex());
             //  应用到状态机
             getStateMachine().apply(logEntry);
-            lastApplied = commitIndex;
 
             log.info("success apply local state machine,  logEntry info : {}", logEntry);
             // 返回成功.
@@ -379,7 +377,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                 aentryParam.setServerId(peer.getAddr());
                 aentryParam.setLeaderId(peerSet.getSelf().getAddr());
 
-                aentryParam.setLeaderCommit(commitIndex);
+                aentryParam.setLeaderCommit(getCommitIndex());
 
                 // 以我这边为准, 这个行为通常是成为 leader 后,首次进行 RPC 才有意义.
                 Long nextIndex = nextIndexs.get(peer);
@@ -395,8 +393,9 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                 } else {
                     logEntries.add(entry);
                 }
-                // 最小的那个日志.
+                // 获取前一个日志
                 LogEntry preLog = getPreLog(logEntries.getFirst());
+                // preLog不存在时，下述参数会被设为-1
                 aentryParam.setPreLogTerm(preLog.getTerm());
                 aentryParam.setPrevLogIndex(preLog.getIndex());
 
@@ -461,12 +460,18 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     }
 
+    /**
+     * 获取logEntry的前一个日志
+     * 没有前一个日志时返回一个index和term为0的空日志
+     * @param logEntry
+     * @return
+     */
     private LogEntry getPreLog(LogEntry logEntry) {
         LogEntry entry = logModule.read(logEntry.getIndex() - 1);
 
         if (entry == null) {
-            log.warn("get perLog is null, parameter logEntry : {}", logEntry);
-            entry = LogEntry.builder().index(0L).term(0).command(null).build();
+            log.warn("perLog is null, parameter logEntry : {}", logEntry);
+            entry = LogEntry.builder().index(-1L).term(-1).command(null).build();
         }
         return entry;
     }

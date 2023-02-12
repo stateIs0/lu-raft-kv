@@ -38,9 +38,9 @@ public class DefaultStateMachine implements StateMachine {
     /** public just for test */
     public String dbDir;
     public String stateMachineDir;
-
+    /** 获取commit index的key值 */
+    public final static byte[] COMMIT = "COMMIT_INDEX".getBytes();
     public RocksDB machineDb;
-
 
     private DefaultStateMachine() {
         dbDir = "./rocksDB-raft/" + System.getProperty("server.port");
@@ -144,6 +144,36 @@ public class DefaultStateMachine implements StateMachine {
             machineDb.put(key.getBytes(), JSON.toJSONBytes(logEntry));
         } catch (RocksDBException e) {
             log.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取最后一个已提交的日志的index，没有已提交日志时返回-1
+     * @return
+     */
+    @Override
+    public synchronized Long getCommit(){
+        byte[] lastCommitIndex = null;
+        try {
+            lastCommitIndex = machineDb.get(COMMIT);
+        } catch (RocksDBException e) {
+            e.printStackTrace();
+        }
+        if (lastCommitIndex == null)
+            lastCommitIndex = "-1".getBytes();
+        return Long.valueOf(new String(lastCommitIndex));
+    }
+
+    /**
+     * 修改commitIndex的接口（持久化）
+     * @param index
+     */
+    @Override
+    public synchronized void setCommit(Long index){
+        try {
+            machineDb.put(COMMIT, index.toString().getBytes());
+        } catch (RocksDBException e) {
+            e.printStackTrace();
         }
     }
 

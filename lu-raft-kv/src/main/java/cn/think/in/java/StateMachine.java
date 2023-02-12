@@ -40,4 +40,8 @@ public interface StateMachine extends LifeCycle {
 
     void delString(String... key);
 
+    Long getCommit();
+
+    void setCommit(Long index);
+
 }

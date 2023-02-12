@@ -149,24 +149,31 @@ public class DefaultConsensus implements Consensus {
             if (param.getEntries() == null || param.getEntries().length == 0) {
                 LOGGER.info("node {} append heartbeat success , he's term : {}, my term : {}",
                     param.getLeaderId(), param.getTerm(), node.getCurrentTerm());
+                // 旧日志提交
+                long nextCommit = node.getCommitIndex() + 1;
+                while (nextCommit <= param.getLeaderCommit()
+                        && node.logModule.read(nextCommit) != null){
+                    node.stateMachine.apply(node.getLogModule().read(nextCommit));
+                    nextCommit++;
+                }
+                node.setCommitIndex(nextCommit - 1);
                 return AentryResult.newBuilder().term(node.getCurrentTerm()).success(true).build();
             }
 
             // TODO no-op空日志
 
             // 1. preLog匹配判断
-            if (node.getLogModule().getLastIndex() != 0 && param.getPrevLogIndex() != 0) {
+            if (node.getLogModule().getLastIndex() != param.getPrevLogIndex()){
+                // index不匹配
+                return result;
+            } else if (param.getPrevLogIndex() >= 0) {
+                // index匹配且前一个日志存在，比较任期号
                 LogEntry preEntry = node.getLogModule().read(param.getPrevLogIndex());
-                if (preEntry == null) {
-                    // 日志不存在，即index不匹配
+                if (preEntry.getTerm() != param.getPreLogTerm()) {
+                    // 任期号不匹配
                     return result;
-                } else {
-                    if (preEntry.getTerm() != param.getPreLogTerm()) {
-                        // 日志存在（index匹配），但任期号不匹配
-                        return result;
-                    }
                 }
-            }
+            } // else ... 前一个日志不存在时，无需查看任期号
 
             // 2. 清理多余的旧日志
             long curIdx = param.getPrevLogIndex() + 1;
@@ -184,14 +191,14 @@ public class DefaultConsensus implements Consensus {
             long nextCommit = node.getCommitIndex() + 1;
             while (nextCommit <= param.getLeaderCommit()){
                 node.stateMachine.apply(node.getLogModule().read(nextCommit));
+                nextCommit++;
             }
             node.setCommitIndex(nextCommit - 1);
-            node.setLastApplied(nextCommit - 1);
 
             // 5. 同意append entry请求
             result.setSuccess(true);
-            result.setTerm(node.getCurrentTerm());
             return result;
+
         } finally {
             appendLock.unlock();
         }
