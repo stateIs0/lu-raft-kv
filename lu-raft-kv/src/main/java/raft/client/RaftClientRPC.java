@@ -45,7 +45,7 @@ public class RaftClientRPC {
      * @param key 查询的key值
      * @return
      */
-    public LogEntry get(String key) {
+    public String get(String key) {
         // raft客户端协议请求体
         ClientKVReq obj = ClientKVReq.builder().key(key).type(ClientKVReq.GET).build();
 
@@ -56,7 +56,7 @@ public class RaftClientRPC {
         // rpc协议请求体
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
 
-        LogEntry response;
+        ClientKVAck response;
         try {
             response = CLIENT.send(r);
         } catch (Exception e) {
@@ -64,7 +64,7 @@ public class RaftClientRPC {
             response = CLIENT.send(r);
         }
 
-        return response;
+        return (String) response.getResult();
     }
 
     /**
@@ -79,7 +79,7 @@ public class RaftClientRPC {
         ClientKVReq obj = ClientKVReq.builder().key(key).value(value).type(ClientKVReq.PUT).build();
 
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
-        String response;
+        ClientKVAck response;
         try {
             response = CLIENT.send(r);
         } catch (Exception e) {
@@ -87,6 +87,6 @@ public class RaftClientRPC {
             response = CLIENT.send(r);
         }
 
-        return response;
+        return (String) response.getResult();
     }
 }

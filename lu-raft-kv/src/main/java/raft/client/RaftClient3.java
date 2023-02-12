@@ -42,14 +42,14 @@ public class RaftClient3 {
 
             SleepHelper.sleep(1000);
 
-            LogEntry logEntry = rpc.get(key);
+            String res = rpc.get(key);
 
-            if (logEntry == null) {
+            if (res == null) {
                 log.error("get logEntry : null, key={}", key);
                 System.exit(1);
                 return;
             }
-            log.info("get logEntry : {}, key = {}", logEntry, key);
+            log.info("get logEntry : {}, key = {}", res, key);
         } catch (Exception e) {
             e.printStackTrace();
         }

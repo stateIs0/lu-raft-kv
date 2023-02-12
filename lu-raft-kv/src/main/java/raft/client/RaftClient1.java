@@ -41,9 +41,9 @@ public class RaftClient1 {
 
                 SleepHelper.sleep(1000);
 
-                LogEntry logEntry = rpc.get(key);
+                String res = rpc.get(key);
 
-                log.info("key = {}, value = {}, get response : {}", key, value, logEntry);
+                log.info("key = {}, value = {}, get response : {}", key, value, res);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
                 i = i - 1;

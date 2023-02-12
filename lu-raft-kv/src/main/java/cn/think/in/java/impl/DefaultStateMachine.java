@@ -141,7 +141,8 @@ public class DefaultStateMachine implements StateMachine {
                 throw new IllegalArgumentException("command can not be null, logEntry : " + logEntry.toString());
             }
             String key = command.getKey();
-            machineDb.put(key.getBytes(), JSON.toJSONBytes(logEntry));
+            String value = command.getValue();
+            machineDb.put(key.getBytes(), value.getBytes());
         } catch (RocksDBException e) {
             log.error(e.getMessage());
         }

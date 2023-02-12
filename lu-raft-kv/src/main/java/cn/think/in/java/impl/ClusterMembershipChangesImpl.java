@@ -57,7 +57,6 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
 
         if (node.status == NodeStatus.LEADER) {
             node.nextIndexs.put(newPeer, 0L);
-            node.matchIndexs.put(newPeer, 0L);
 
             for (long i = 0; i < node.logModule.getLastIndex(); i++) {
                 LogEntry entry = node.logModule.read(i);
@@ -97,7 +96,6 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
     public synchronized Result removePeer(Peer oldPeer) {
         node.peerSet.getPeersWithOutSelf().remove(oldPeer);
         node.nextIndexs.remove(oldPeer);
-        node.matchIndexs.remove(oldPeer);
 
         return new Result();
     }

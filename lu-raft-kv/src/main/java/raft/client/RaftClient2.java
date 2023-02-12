@@ -33,9 +33,9 @@ public class RaftClient2 {
             try {
                 String key = "hello:" + i;
 
-                LogEntry logEntry = rpc.get(key);
+                String res = rpc.get(key);
 
-                log.info("key={}, get response : {}", key, logEntry);
+                log.info("key={}, get response : {}", key, res);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {

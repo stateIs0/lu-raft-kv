@@ -118,4 +118,14 @@ public class RedisStateMachine implements StateMachine {
             log.error("redis error ", e);
         }
     }
+
+    @Override
+    public Long getCommit() {
+        return null;
+    }
+
+    @Override
+    public void setCommit(Long index) {
+
+    }
 }
