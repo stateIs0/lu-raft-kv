@@ -34,7 +34,6 @@ public class ClusterMembershipChangesImpl implements ClusterMembershipChanges {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMembershipChangesImpl.class);
 
-
     private final DefaultNode node;
 
     public ClusterMembershipChangesImpl(DefaultNode node) {

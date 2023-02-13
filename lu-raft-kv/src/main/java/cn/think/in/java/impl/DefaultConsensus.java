@@ -141,8 +141,8 @@ public class DefaultConsensus implements Consensus {
 
             //心跳
             if (param.getEntries() == null || param.getEntries().length == 0) {
-                LOGGER.info("node {} append heartbeat success , he's term : {}, my term : {}",
-                    param.getLeaderId(), param.getTerm(), node.getCurrentTerm());
+                LOGGER.info("receive heartbeat from node {}, term : {}",
+                    param.getLeaderId(), param.getTerm());
                 // 旧日志提交
                 long nextCommit = node.getCommitIndex() + 1;
                 while (nextCommit <= param.getLeaderCommit()

@@ -68,7 +68,10 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
     /** 上次一心跳时间戳 */
     public volatile long preHeartBeatTime = 0;
     /** 心跳间隔基数 */
-    public final long heartBeatTick = 1000;
+    public final long heartBeatTick = 300;
+
+    /** 一致性信号 */
+    public final Integer consistencySignal = 1;
 
     /** 发送心跳信号 */
     private HeartBeatTask heartBeatTask = new HeartBeatTask();
@@ -93,12 +96,12 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     /* ============ 所有服务器上持久存在的 ============= */
 
-    /** 服务器最后一次知道的任期号（初始化为 0，持续递增） */
-    volatile long currentTerm = 0;
-    /** 在当前获得选票的候选人的 Id */
-    volatile String votedFor;
     /** 日志条目集；每一个条目包含一个用户状态机执行的指令，和收到时的任期号 */
     LogModule logModule;
+    /** 服务器最后一次知道的任期号（初始化为 0，持续递增） */
+    volatile long currentTerm;
+    /** 在当前获得选票的候选人的 Id */
+    volatile String votedFor;
 
     /* ========== 在领导人里经常改变的(选举后重新初始化) ================== */
 
@@ -122,7 +125,6 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     ClusterMembershipChanges delegate;
 
-
     /* ============================== */
 
     private DefaultNode() {
@@ -145,6 +147,10 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
         consensus = new DefaultConsensus(this);
         delegate = new ClusterMembershipChangesImpl(this);
+
+        LogEntry lastEntry = logModule.getLast();
+        if (lastEntry != null)
+            currentTerm = lastEntry.getTerm();
 
         /**
          * 创建重复延迟任务；任务完成后重新投入队列
@@ -246,11 +252,20 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
         // 读操作
         if (request.getType() == ClientKVReq.GET) {
-            String value = stateMachine.getString(request.getKey());
-            if (value != null) {
-                return new ClientKVAck(value);
+            synchronized (consistencySignal){
+                try {
+                    // 等待一个心跳周期，以保证当前领导者有效
+                    consistencySignal.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    return ClientKVAck.fail();
+                }
+                String value = stateMachine.getString(request.getKey());
+                if (value != null) {
+                    return new ClientKVAck(value);
+                }
+                return new ClientKVAck(null);
             }
-            return new ClientKVAck(null);
         }
 
         // 幂等性判断
@@ -769,23 +784,22 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             }
 
             preHeartBeatTime = System.currentTimeMillis();
+            AentryParam param = AentryParam.builder()
+                    .entries(null)// 心跳,空日志.
+                    .leaderId(peerSet.getSelf().getAddr())
+                    .term(currentTerm)
+                    .leaderCommit(getCommitIndex())
+                    .build();
+            List<Future<Boolean>> futureList = new ArrayList<>();
 
-            // 心跳只关心 term 和 leaderID
             for (Peer peer : peerSet.getPeersWithOutSelf()) {
-
-                AentryParam param = AentryParam.builder()
-                        .entries(null)// 心跳,空日志.
-                        .leaderId(peerSet.getSelf().getAddr())
-                        .serverId(peer.getAddr())
-                        .term(currentTerm)
-                        .build();
-
                 Request request = new Request(
                         Request.A_ENTRIES,
                         param,
                         peer.getAddr());
 
-                RaftThreadPool.execute(() -> {
+                // 并行发起 RPC 复制并获取响应
+                futureList.add(RaftThreadPool.submit(() -> {
                     try {
                         AentryResult aentryResult = rpcClient.send(request);
                         long term = aentryResult.getTerm();
@@ -796,12 +810,39 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                             votedFor = "";
                             status = NodeStatus.FOLLOWER;
                         }
+                        return aentryResult.isSuccess();
                     } catch (Exception e) {
                         log.error("HeartBeatTask RPC Fail, request URL : {} ", request.getUrl());
+                        return false;
                     }
-                }, false);
+                }));
+            }
+            int count = futureList.size();
+            int success = 0;
 
-                //log.info("heart beats sent");
+            CountDownLatch latch = new CountDownLatch(futureList.size());
+            List<Boolean> resultList = new CopyOnWriteArrayList<>();
+
+            getRPCAppendResult(futureList, latch, resultList);
+
+            try {
+                // 等待getRPCAppendResult中的线程执行完毕
+                latch.await(3000, MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.error(e.getMessage(), e);
+            }
+
+            for (Boolean aBoolean : resultList) {
+                if (aBoolean) {
+                    success++;
+                }
+            }
+
+            //  心跳响应成功，通知阻塞的线程
+            if (success * 2 >= count) {
+                synchronized (consistencySignal){
+                    consistencySignal.notify();
+                }
             }
         }
     }

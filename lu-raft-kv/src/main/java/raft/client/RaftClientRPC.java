@@ -26,12 +26,14 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * raft客户端RPC调用模块
+ *
  * @author gwk_2，大东
  * @date 2023/2/12 21:04
  */
 public class RaftClientRPC {
 
-    private static List<String> list = Lists.newArrayList("localhost:8777", "localhost:8778", "localhost:8779");
+    private static List<String> list = Lists.newArrayList("localhost:8775", "localhost:8776", "localhost:8777", "localhost:8778", "localhost:8779");
 
     private final static RpcClient CLIENT = new DefaultRpcClient();
 
@@ -66,6 +68,9 @@ public class RaftClientRPC {
                 r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
             }
         }
+        if (response.getResult() == null || response.getResult().equals("fail")){
+            return null;
+        }
 
         return (String) response.getResult();
     }
@@ -83,7 +88,7 @@ public class RaftClientRPC {
 
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
         ClientKVAck response = null;
-        while (response == null){
+        while (response == null || response.getResult().equals("fail")){
             // 不断重试，直到获取服务端响应
             try {
                 response = CLIENT.send(r);

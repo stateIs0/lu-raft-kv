@@ -77,7 +77,6 @@ public class DefaultRpcServiceImpl implements RpcService {
         return null;
     }
 
-
     @Override
     public void init() {
         rpcServer.start();
