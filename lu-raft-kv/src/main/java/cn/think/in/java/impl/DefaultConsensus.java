@@ -62,9 +62,6 @@ public class DefaultConsensus implements Consensus {
     public RvoteResult requestVote(RvoteParam param) {
         try {
             RvoteResult.Builder builder = RvoteResult.newBuilder();
-//            if (!voteLock.tryLock()) {
-//                return builder.term(node.getCurrentTerm()).voteGranted(false).build();
-//            }
             voteLock.lock();
 
             // 对方任期没有自己新
@@ -73,10 +70,6 @@ public class DefaultConsensus implements Consensus {
                 LOGGER.info("node {} decline to vote for candidate {} because of smaller term", node.peerSet.getSelf().getAddr(), param.getCandidateId());
                 return builder.term(node.getCurrentTerm()).voteGranted(false).build();
             }
-
-            // (当前节点并没有投票 或者 已经投票过了且是对方节点) && 对方日志和自己一样新
-//            LOGGER.info("node {} current vote for [{}], param candidateId : {}", node.peerSet.getSelf(), node.getVotedFor(), param.getCandidateId());
-//            LOGGER.info("node {} current term {}, peer term : {}", node.peerSet.getSelf(), node.getCurrentTerm(), param.getTerm());
 
             if ((StringUtil.isNullOrEmpty(node.getVotedFor()) || node.getVotedFor().equals(param.getCandidateId()))) {
 
@@ -160,8 +153,6 @@ public class DefaultConsensus implements Consensus {
                 node.setCommitIndex(nextCommit - 1);
                 return AentryResult.newBuilder().term(node.getCurrentTerm()).success(true).build();
             }
-
-            // TODO no-op空日志
 
             // 1. preLog匹配判断
             if (node.getLogModule().getLastIndex() != param.getPrevLogIndex()){

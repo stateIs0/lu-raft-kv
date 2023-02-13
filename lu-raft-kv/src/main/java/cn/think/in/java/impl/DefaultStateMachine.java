@@ -26,6 +26,7 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 默认的状态机实现.
@@ -108,7 +109,7 @@ public class DefaultStateMachine implements StateMachine {
         } catch (RocksDBException e) {
             log.error(e.getMessage());
         }
-        return "";
+        return null;
     }
 
     @Override
@@ -138,11 +139,12 @@ public class DefaultStateMachine implements StateMachine {
             Command command = logEntry.getCommand();
 
             if (command == null) {
-                throw new IllegalArgumentException("command can not be null, logEntry : " + logEntry.toString());
+                return; // no-op
             }
             String key = command.getKey();
             String value = command.getValue();
             machineDb.put(key.getBytes(), value.getBytes());
+            machineDb.put(logEntry.getRequestId().getBytes(), "1".getBytes());
         } catch (RocksDBException e) {
             log.error(e.getMessage());
         }

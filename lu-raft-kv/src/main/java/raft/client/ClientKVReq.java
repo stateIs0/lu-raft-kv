@@ -45,6 +45,9 @@ public class ClientKVReq implements Serializable {
     /** 值 */
     String value;
 
+    /** 请求id */
+    String requestId;
+
     public enum Type {
         /** 1111 */
         PUT(0), GET(1);

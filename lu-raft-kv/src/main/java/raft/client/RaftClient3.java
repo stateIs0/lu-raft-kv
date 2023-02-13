@@ -20,6 +20,8 @@ import cn.think.in.java.current.SleepHelper;
 import cn.think.in.java.entity.LogEntry;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetAddress;
+
 /**
  * @author 莫那·鲁道
  */
@@ -29,20 +31,24 @@ public class RaftClient3 {
     public static void main(String[] args) throws Throwable {
 
         RaftClientRPC rpc = new RaftClientRPC();
+        InetAddress localHost = InetAddress.getLocalHost();
+        String prefix = localHost.getHostAddress();
 
         int keyNum = 4;
         try {
 
             String key = "hello:" + keyNum;
             String value = "world:" + keyNum;
+            // 客户端请求唯一id
+            String requestId = prefix + 1;
 
-            String putResult = rpc.put(key, value);
+            String putResult = rpc.put(key, value, requestId);
 
             log.info("put response : {}, key={}, value={}", putResult, key, value);
 
             SleepHelper.sleep(1000);
 
-            String res = rpc.get(key);
+            String res = rpc.get(key, requestId);
 
             if (res == null) {
                 log.error("get logEntry : null, key={}", key);

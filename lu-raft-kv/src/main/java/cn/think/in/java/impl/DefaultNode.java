@@ -208,7 +208,11 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
         return consensus.appendEntries(param);
     }
 
-
+    /**
+     * 重定向
+     * @param request 客户端请求
+     * @return 请求结果
+     */
     @Override
     public ClientKVAck redirect(ClientKVReq request) {
         Request r = Request.builder()
@@ -249,6 +253,12 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             return new ClientKVAck(null);
         }
 
+        // 幂等性判断
+        if (stateMachine.getString(request.getRequestId()) != null){
+            log.warn("request have been ack");
+            return ClientKVAck.ok();
+        }
+
         // 写操作
         LogEntry logEntry = LogEntry.builder()
                 .command(Command.builder().
@@ -256,6 +266,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                         value(request.getValue()).
                         build())
                 .term(currentTerm)
+                .requestId(request.getRequestId())
                 .build();
 
         // 写入本地日志并更新logEntry的index
@@ -281,7 +292,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
         try {
             // 等待getRPCAppendResult中的线程执行完毕
-            latch.await(4000, MILLISECONDS);
+            latch.await(10000, MILLISECONDS);
         } catch (InterruptedException e) {
             log.error(e.getMessage(), e);
         }
@@ -299,6 +310,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             //  应用到状态机
             getStateMachine().apply(logEntry);
             log.info("successfully commit, logEntry info: {}", logEntry);
+            // TODO 记录已提交日志对应的request id
             // 返回成功.
             return ClientKVAck.ok();
         } else {
@@ -645,15 +657,19 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                 preElectionTime = System.currentTimeMillis() + ThreadLocalRandom.current().nextInt(10) * 100;
                 return;
             }
+
             // 需要获得超过半数节点的投票
             if (success * 2 >= peers.size()) {
                 log.warn("node {} become leader with {} votes ", peerSet.getSelf().getAddr(), success);
-                status = LEADER;
                 peerSet.setLeader(peerSet.getSelf());
                 votedFor = "";
-                becomeLeaderToDoThing();
-            } else {
-                // else 重新选举
+                if (leaderInit())
+                    status = LEADER;
+            }
+
+            // 未赢得过半的投票，或提交no-op空日志失败
+            if (status != LEADER){
+                // 重新选举
                 log.info("node {} election fail, votes count = {} ", peerSet.getSelf().getAddr(), success);
                 votedFor = "";
                 status = NodeStatus.FOLLOWER;
@@ -664,13 +680,72 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
     }
 
     /**
-     * 初始化所有的 nextIndex 值为自己的最后一条日志的 index + 1. 如果下次 RPC 时, 跟随者和leader 不一致,就会失败.
-     * 那么 leader 尝试递减 nextIndex 并进行重试.最终将达成一致.
+     * 1. 初始化所有的 nextIndex 值为自己的最后一条日志的 index + 1
+     * 2. 发送并提交no-op空日志，以提交旧领导者未提交的日志
+     * 3. apply no-op之前的日志
      */
-    private void becomeLeaderToDoThing() {
+    private boolean leaderInit() {
         nextIndexs = new ConcurrentHashMap<>();
         for (Peer peer : peerSet.getPeersWithOutSelf()) {
-            nextIndexs.put(peer, logModule.getLastIndex() + 1); // nextIndex从0开始
+            nextIndexs.put(peer, logModule.getLastIndex() + 1);
+        }
+
+        // no-op 空日志
+        LogEntry logEntry = LogEntry.builder()
+                .command(null)
+                .term(currentTerm)
+                .build();
+
+        // 写入本地日志并更新logEntry的index
+        logModule.write(logEntry);
+        log.info("write no-op log success, log index: {}", logEntry.getIndex());
+
+        final AtomicInteger success = new AtomicInteger(0);
+
+        List<Future<Boolean>> futureList = new ArrayList<>();
+
+        //  复制到其他机器
+        for (Peer peer : peerSet.getPeersWithOutSelf()) {
+            // 并行发起 RPC 复制并获取响应
+            futureList.add(replication(peer, logEntry));
+        }
+        int count = futureList.size();
+
+        CountDownLatch latch = new CountDownLatch(futureList.size());
+        List<Boolean> resultList = new CopyOnWriteArrayList<>();
+
+        getRPCAppendResult(futureList, latch, resultList);
+
+        try {
+            // 等待getRPCAppendResult中的线程执行完毕
+            latch.await(10000, MILLISECONDS);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+        }
+
+        for (Boolean aBoolean : resultList) {
+            if (aBoolean) {
+                success.incrementAndGet();
+            }
+        }
+
+        //  响应客户端(成功一半及以上)
+        if (success.get() * 2 >= count) {
+            // 提交旧日志并更新commit index
+            long nextCommit = getCommitIndex() + 1;
+            while (nextCommit < logEntry.getIndex() && logModule.read(nextCommit) != null){
+                stateMachine.apply(getLogModule().read(nextCommit));
+                nextCommit++;
+            }
+            setCommitIndex(logEntry.getIndex());
+            log.info("successfully commit, logEntry info: {}", logEntry);
+            // 返回成功
+            return true;
+        } else {
+            // 提交失败，删除日志
+            logModule.removeOnStartIndex(logEntry.getIndex());
+            log.warn("no-op commit fail, election again");
+            return false;
         }
     }
 
@@ -692,10 +767,6 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             if (current - preHeartBeatTime < heartBeatTick) {
                 return;
             }
-//            log.info("=========== NextIndex =============");
-//            for (Peer peer : peerSet.getPeersWithOutSelf()) {
-//                log.info("Peer {} nextIndex={}", peer.getAddr(), nextIndexs.get(peer));
-//            }
 
             preHeartBeatTime = System.currentTimeMillis();
 
@@ -730,7 +801,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                     }
                 }, false);
 
-                log.info("heart beats sent");
+                //log.info("heart beats sent");
             }
         }
     }

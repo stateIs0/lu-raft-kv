@@ -19,6 +19,8 @@ package raft.client;
 import cn.think.in.java.entity.LogEntry;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetAddress;
+
 /**
  * @author 莫那·鲁道
  */
@@ -28,12 +30,16 @@ public class RaftClient2 {
     public static void main(String[] args) throws Throwable {
 
         RaftClientRPC rpc = new RaftClientRPC();
+        InetAddress localHost = InetAddress.getLocalHost();
+        String prefix = localHost.getHostAddress();
 
         for (int i = 3; ; i++) {
             try {
                 String key = "hello:" + i;
+                // 客户端请求唯一id
+                String requestId = prefix + i;
 
-                String res = rpc.get(key);
+                String res = rpc.get(key, requestId);
 
                 log.info("key={}, get response : {}", key, res);
             } catch (Exception e) {

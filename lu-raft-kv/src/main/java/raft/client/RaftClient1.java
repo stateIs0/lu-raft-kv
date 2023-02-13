@@ -20,6 +20,9 @@ import cn.think.in.java.current.SleepHelper;
 import cn.think.in.java.entity.LogEntry;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetAddress;
+import java.util.UUID;
+
 /**
  * @author 莫那·鲁道
  */
@@ -29,27 +32,30 @@ public class RaftClient1 {
     public static void main(String[] args) throws Throwable {
 
         RaftClientRPC rpc = new RaftClientRPC();
+        InetAddress localHost = InetAddress.getLocalHost();
+        String prefix = localHost.getHostAddress() + UUID.randomUUID().toString().substring(0, 5);
 
         for (int i = 3; i > -1; i++) {
+            String key = "[test4:" + i +"]";
+            String value = "[test4:" + i + "]";
+            // 客户端请求唯一id
+            String requestId = prefix + i;
             try {
-                String key = "hello:" + i;
-                String value = "world:" + i;
-
-                String putResult = rpc.put(key, value);
-
+                String putResult = rpc.put(key, value, requestId);
                 log.info("key = {}, value = {}, put response : {}", key, value, putResult);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
 
-                SleepHelper.sleep(1000);
+            Thread.sleep(5000);
 
-                String res = rpc.get(key);
-
+            try {
+                String res = rpc.get(key, requestId);
                 log.info("key = {}, value = {}, get response : {}", key, value, res);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
-                i = i - 1;
             }
 
-            SleepHelper.sleep(5000);
         }
 
 

@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * @author gwk_2
- * @date 2022/4/19 15:50
+ * @author gwk_2，大东
+ * @date 2023/2/12 21:04
  */
 public class RaftClientRPC {
 
@@ -45,9 +45,10 @@ public class RaftClientRPC {
      * @param key 查询的key值
      * @return
      */
-    public String get(String key) {
+    public String get(String key, String requestId) {
+
         // raft客户端协议请求体
-        ClientKVReq obj = ClientKVReq.builder().key(key).type(ClientKVReq.GET).build();
+        ClientKVReq obj = ClientKVReq.builder().key(key).type(ClientKVReq.GET).requestId(requestId).build();
 
         int index = (int) (count.incrementAndGet() % list.size());
 
@@ -56,12 +57,14 @@ public class RaftClientRPC {
         // rpc协议请求体
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
 
-        ClientKVAck response;
-        try {
-            response = CLIENT.send(r);
-        } catch (Exception e) {
-            r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-            response = CLIENT.send(r);
+        ClientKVAck response = null;
+        while (response == null){
+            // 不断重试，直到获取服务端响应
+            try {
+                response = CLIENT.send(r);
+            } catch (Exception e) {
+                r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
+            }
         }
 
         return (String) response.getResult();
@@ -72,19 +75,21 @@ public class RaftClientRPC {
      * @param value
      * @return
      */
-    public String put(String key, String value) {
+    public String put(String key, String value, String requestId) {
         int index = (int) (count.incrementAndGet() % list.size());
 
         String addr = list.get(index);
-        ClientKVReq obj = ClientKVReq.builder().key(key).value(value).type(ClientKVReq.PUT).build();
+        ClientKVReq obj = ClientKVReq.builder().key(key).value(value).type(ClientKVReq.PUT).requestId(requestId).build();
 
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
-        ClientKVAck response;
-        try {
-            response = CLIENT.send(r);
-        } catch (Exception e) {
-            r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-            response = CLIENT.send(r);
+        ClientKVAck response = null;
+        while (response == null){
+            // 不断重试，直到获取服务端响应
+            try {
+                response = CLIENT.send(r);
+            } catch (Exception e) {
+                r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
+            }
         }
 
         return (String) response.getResult();

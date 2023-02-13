@@ -41,6 +41,8 @@ public class LogEntry implements Serializable, Comparable {
 
     private Command command;
 
+    private String requestId;
+
     @Override
     public int compareTo(Object o) {
         if (o == null) {
