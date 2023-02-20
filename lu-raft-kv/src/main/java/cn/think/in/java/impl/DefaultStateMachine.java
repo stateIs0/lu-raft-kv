@@ -160,10 +160,11 @@ public class DefaultStateMachine implements StateMachine {
         try {
             lastCommitIndex = machineDb.get(COMMIT);
         } catch (RocksDBException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
-        if (lastCommitIndex == null)
+        if (lastCommitIndex == null){
             lastCommitIndex = "-1".getBytes();
+        }
         return Long.valueOf(new String(lastCommitIndex));
     }
 
@@ -176,7 +177,7 @@ public class DefaultStateMachine implements StateMachine {
         try {
             machineDb.put(COMMIT, index.toString().getBytes());
         } catch (RocksDBException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
     }
 

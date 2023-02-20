@@ -60,6 +60,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
      * 单位: ms
      */
     public volatile long electionTimeout = 1000 * 3;
+
     /**
      * 上一次选举时间；收到领导者rpc调用时该值会更新
      */
@@ -67,6 +68,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     /** 上次一心跳时间戳 */
     public volatile long preHeartBeatTime = 0;
+
     /** 心跳间隔基数 */
     public final long heartBeatTick = 300;
 
@@ -98,8 +100,10 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
     /** 日志条目集；每一个条目包含一个用户状态机执行的指令，和收到时的任期号 */
     LogModule logModule;
+
     /** 服务器最后一次知道的任期号（初始化为 0，持续递增） */
     volatile long currentTerm;
+
     /** 在当前获得选票的候选人的 Id */
     volatile String votedFor;
 

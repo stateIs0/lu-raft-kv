@@ -72,11 +72,14 @@ public class DefaultConsensus implements Consensus {
             }
 
             if ((StringUtil.isNullOrEmpty(node.getVotedFor()) || node.getVotedFor().equals(param.getCandidateId()))) {
-
                 if (node.getLogModule().getLast() != null) {
-                    // 候选者的日志不是最新的，拒绝投票
-                    if (node.getLogModule().getLast().getTerm() > param.getLastLogTerm() ||
-                            node.getLogModule().getLastIndex() > param.getLastLogIndex()) {
+                    // 对方没有自己新
+                    if (node.getLogModule().getLast().getTerm() > param.getLastLogTerm()) {
+                        LOGGER.info("node {} decline to vote for candidate {} because of older log term", node.peerSet.getSelf().getAddr(), param.getCandidateId());
+                        return RvoteResult.fail();
+                    }
+                    // 对方没有自己新
+                    if (node.getLogModule().getLastIndex() > param.getLastLogIndex()) {
                         LOGGER.info("node {} decline to vote for candidate {} because of older logs", node.peerSet.getSelf().getAddr(), param.getCandidateId());
                         return RvoteResult.fail();
                     }
