@@ -148,6 +148,24 @@ public class DefaultConsensus implements Consensus {
             if (param.getEntries() == null || param.getEntries().length == 0) {
                 LOGGER.info("node {} append heartbeat success , he's term : {}, my term : {}",
                     param.getLeaderId(), param.getTerm(), node.getCurrentTerm());
+
+                // 处理 leader 已提交但未应用到状态机的日志
+
+                // 下一个需要提交的日志的索引（如有）
+                long nextCommit = node.getCommitIndex() + 1;
+
+                //如果 leaderCommit > commitIndex，令 commitIndex 等于 leaderCommit 和 新日志条目索引值中较小的一个
+                if (param.getLeaderCommit() > node.getCommitIndex()) {
+                    int commitIndex = (int) Math.min(param.getLeaderCommit(), node.getLogModule().getLastIndex());
+                    node.setCommitIndex(commitIndex);
+                    node.setLastApplied(commitIndex);
+                }
+
+                while (nextCommit <= node.getCommitIndex()){
+                    // 提交之前的日志
+                    node.stateMachine.apply(node.logModule.read(nextCommit));
+                    nextCommit++;
+                }
                 return AentryResult.newBuilder().term(node.getCurrentTerm()).success(true).build();
             }
 
@@ -179,18 +197,26 @@ public class DefaultConsensus implements Consensus {
                 return result;
             }
 
-            // 写进日志并且应用到状态机
+            // 写进日志
             for (LogEntry entry : param.getEntries()) {
                 node.getLogModule().write(entry);
-                node.stateMachine.apply(entry);
                 result.setSuccess(true);
             }
+
+            // 下一个需要提交的日志的索引（如有）
+            long nextCommit = node.getCommitIndex() + 1;
 
             //如果 leaderCommit > commitIndex，令 commitIndex 等于 leaderCommit 和 新日志条目索引值中较小的一个
             if (param.getLeaderCommit() > node.getCommitIndex()) {
                 int commitIndex = (int) Math.min(param.getLeaderCommit(), node.getLogModule().getLastIndex());
                 node.setCommitIndex(commitIndex);
                 node.setLastApplied(commitIndex);
+            }
+
+            while (nextCommit <= node.getCommitIndex()){
+                // 提交之前的日志
+                node.stateMachine.apply(node.logModule.read(nextCommit));
+                nextCommit++;
             }
 
             result.setTerm(node.getCurrentTerm());
