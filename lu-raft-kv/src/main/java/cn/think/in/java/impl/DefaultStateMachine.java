@@ -142,7 +142,8 @@ public class DefaultStateMachine implements StateMachine {
             Command command = logEntry.getCommand();
 
             if (command == null) {
-                throw new IllegalArgumentException("command can not be null, logEntry : " + logEntry.toString());
+                // 忽略空日志
+                return;
             }
             String key = command.getKey();
             machineDb.put(key.getBytes(), JSON.toJSONBytes(logEntry));
