@@ -22,6 +22,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.io.Serializable;
+
 /**
  *
  * 附加日志 RPC 参数. handlerAppendEntries
@@ -33,7 +35,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @Builder
-public class AentryParam {
+public class AentryParam implements Serializable {
 
     /** 候选人的任期号  */
     private long term;
