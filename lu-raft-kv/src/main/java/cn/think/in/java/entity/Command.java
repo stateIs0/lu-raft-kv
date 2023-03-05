@@ -16,10 +16,7 @@ limitations under the License.
  */
 package cn.think.in.java.entity;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.io.Serializable;
 
@@ -31,6 +28,8 @@ import java.io.Serializable;
 @Setter
 @ToString
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Command implements Serializable {
 
     String key;
