@@ -119,7 +119,7 @@ public class DefaultLogModule implements LogModule {
             success = true;
             log.info("DefaultLogModule write rocksDB success, logEntry info : [{}]", logEntry);
         } catch (RocksDBException | InterruptedException e) {
-            log.warn(e.getMessage());
+            throw new RuntimeException(e);
         } finally {
             if (success) {
                 updateLastIndex(logEntry.getIndex());
@@ -138,9 +138,8 @@ public class DefaultLogModule implements LogModule {
             }
             return JSON.parseObject(result, LogEntry.class);
         } catch (RocksDBException e) {
-            log.warn(e.getMessage(), e);
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     @Override
@@ -160,7 +159,7 @@ public class DefaultLogModule implements LogModule {
             success = true;
             log.warn("rocksDB removeOnStartIndex success, count={} startIndex={}, lastIndex={}", count, startIndex, getLastIndex());
         } catch (InterruptedException | RocksDBException e) {
-            log.warn(e.getMessage());
+            throw new RuntimeException(e);
         } finally {
             if (success) {
                 updateLastIndex(getLastIndex() - count);
@@ -179,21 +178,20 @@ public class DefaultLogModule implements LogModule {
             }
             return JSON.parseObject(result, LogEntry.class);
         } catch (RocksDBException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     @Override
     public Long getLastIndex() {
-        byte[] lastIndex = "-1".getBytes();
+        byte[] lastIndex;
         try {
             lastIndex = logDb.get(LAST_INDEX_KEY);
             if (lastIndex == null) {
                 lastIndex = "-1".getBytes();
             }
         } catch (RocksDBException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return Long.valueOf(new String(lastIndex));
     }
@@ -208,7 +206,7 @@ public class DefaultLogModule implements LogModule {
             // overWrite
             logDb.put(LAST_INDEX_KEY, index.toString().getBytes());
         } catch (RocksDBException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
