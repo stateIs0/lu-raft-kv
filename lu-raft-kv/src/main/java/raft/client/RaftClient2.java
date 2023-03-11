@@ -37,6 +37,7 @@ public class RaftClient2 {
 
                 log.info("key={}, get response : {}", key, logEntry);
             } catch (Exception e) {
+                // ignore
                 e.printStackTrace();
             } finally {
                 Thread.sleep(1000);

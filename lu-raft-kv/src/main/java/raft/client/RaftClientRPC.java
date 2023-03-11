@@ -78,10 +78,10 @@ public class RaftClientRPC {
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
         ClientKVAck response;
         try {
-            response = (ClientKVAck)CLIENT.send(r);
+            response = CLIENT.send(r);
         } catch (Exception e) {
             r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-            response = (ClientKVAck)CLIENT.send(r);
+            response = CLIENT.send(r);
         }
 
         return response.getResult().toString();
