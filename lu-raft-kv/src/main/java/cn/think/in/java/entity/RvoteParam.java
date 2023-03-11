@@ -22,6 +22,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
+
 /**
  * 请求投票 RPC 参数.
  *
@@ -32,7 +34,7 @@ import lombok.Setter;
 @Setter
 @Builder
 @Data
-public class RvoteParam {
+public class RvoteParam implements Serializable {
     /** 候选人的任期号  */
     private long term;
 

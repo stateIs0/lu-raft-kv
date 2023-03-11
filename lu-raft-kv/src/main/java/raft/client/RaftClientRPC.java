@@ -52,7 +52,7 @@ public class RaftClientRPC {
 
         String addr = list.get(index);
 
-        LogEntry response;
+        ClientKVAck response;
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
         try {
             response = CLIENT.send(r);
@@ -61,7 +61,7 @@ public class RaftClientRPC {
             response = CLIENT.send(r);
         }
 
-        return response;
+        return (LogEntry)response.getResult();
     }
 
     /**
@@ -76,14 +76,14 @@ public class RaftClientRPC {
         ClientKVReq obj = ClientKVReq.builder().key(key).value(value).type(ClientKVReq.PUT).build();
 
         Request r = Request.builder().obj(obj).url(addr).cmd(Request.CLIENT_REQ).build();
-        String response;
+        ClientKVAck response;
         try {
-            response = CLIENT.send(r);
+            response = (ClientKVAck)CLIENT.send(r);
         } catch (Exception e) {
             r.setUrl(list.get((int) ((count.incrementAndGet()) % list.size())));
-            response = CLIENT.send(r);
+            response = (ClientKVAck)CLIENT.send(r);
         }
 
-        return response;
+        return response.getResult().toString();
     }
 }

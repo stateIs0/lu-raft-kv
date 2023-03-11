@@ -41,6 +41,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static cn.think.in.java.common.NodeStatus.FOLLOWER;
 import static cn.think.in.java.common.NodeStatus.LEADER;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -236,7 +237,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
         if (request.getType() == ClientKVReq.GET) {
             LogEntry logEntry = stateMachine.get(request.getKey());
             if (logEntry != null) {
-                return new ClientKVAck(logEntry.getCommand());
+                return new ClientKVAck(logEntry);
             }
             return new ClientKVAck(null);
         }
@@ -593,17 +594,17 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                 RaftThreadPool.submit(() -> {
                     try {
                         @SuppressWarnings("unchecked")
-                        Response<RvoteResult> response = (Response<RvoteResult>) future.get(3000, MILLISECONDS);
-                        if (response == null) {
+                        RvoteResult result = (RvoteResult) future.get(3000, MILLISECONDS);
+                        if (result == null) {
                             return -1;
                         }
-                        boolean isVoteGranted = response.getResult().isVoteGranted();
+                        boolean isVoteGranted = result.isVoteGranted();
 
                         if (isVoteGranted) {
                             success2.incrementAndGet();
                         } else {
                             // 更新自己的任期.
-                            long resTerm = response.getResult().getTerm();
+                            long resTerm = result.getTerm();
                             if (resTerm >= currentTerm) {
                                 currentTerm = resTerm;
                             }
@@ -642,6 +643,8 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                 // else 重新选举
                 votedFor = "";
             }
+            // 再次更新选举时间
+            preElectionTime = System.currentTimeMillis() + ThreadLocalRandom.current().nextInt(200) + 150;
 
         }
     }
@@ -657,6 +660,85 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
             nextIndexs.put(peer, logModule.getLastIndex() + 1);
             matchIndexs.put(peer, 0L);
         }
+
+        // 创建[空日志]并提交，用于处理前任领导者未提交的日志
+        LogEntry logEntry = LogEntry.builder()
+                .command(null)
+                .term(currentTerm)
+                .build();
+
+        // 预提交到本地日志, TODO 预提交
+        logModule.write(logEntry);
+        log.info("write logModule success, logEntry info : {}, log index : {}", logEntry, logEntry.getIndex());
+
+        final AtomicInteger success = new AtomicInteger(0);
+
+        List<Future<Boolean>> futureList = new ArrayList<>();
+
+        int count = 0;
+        //  复制到其他机器
+        for (Peer peer : peerSet.getPeersWithOutSelf()) {
+            // TODO check self and RaftThreadPool
+            count++;
+            // 并行发起 RPC 复制.
+            futureList.add(replication(peer, logEntry));
+        }
+
+        CountDownLatch latch = new CountDownLatch(futureList.size());
+        List<Boolean> resultList = new CopyOnWriteArrayList<>();
+
+        getRPCAppendResult(futureList, latch, resultList);
+
+        try {
+            latch.await(4000, MILLISECONDS);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+        }
+
+        for (Boolean aBoolean : resultList) {
+            if (aBoolean) {
+                success.incrementAndGet();
+            }
+        }
+
+        // 如果存在一个满足N > commitIndex的 N，并且大多数的matchIndex[i] ≥ N成立，
+        // 并且log[N].term == currentTerm成立，那么令 commitIndex 等于这个 N （5.3 和 5.4 节）
+        List<Long> matchIndexList = new ArrayList<>(matchIndexs.values());
+        // 小于 2, 没有意义
+        int median = 0;
+        if (matchIndexList.size() >= 2) {
+            Collections.sort(matchIndexList);
+            median = matchIndexList.size() / 2;
+        }
+        Long N = matchIndexList.get(median);
+        if (N > commitIndex) {
+            LogEntry entry = logModule.read(N);
+            if (entry != null && entry.getTerm() == currentTerm) {
+                commitIndex = N;
+            }
+        }
+
+        //  响应客户端(成功一半)
+        if (success.get() >= (count / 2)) {
+            // 更新
+            commitIndex = logEntry.getIndex();
+            //  应用到状态机
+            getStateMachine().apply(logEntry);
+            lastApplied = commitIndex;
+
+            log.info("success apply local state machine,  logEntry info : {}", logEntry);
+        } else {
+            // 回滚已经提交的日志
+            logModule.removeOnStartIndex(logEntry.getIndex());
+            log.warn("fail apply local state  machine,  logEntry info : {}", logEntry);
+
+            // 无法提交空日志，让出领导者位置
+            log.warn("node {} becomeLeaderToDoThing fail ", peerSet.getSelf());
+            status = FOLLOWER;
+            peerSet.setLeader(null);
+            votedFor = "";
+        }
+
     }
 
 
@@ -688,6 +770,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
                         .leaderId(peerSet.getSelf().getAddr())
                         .serverId(peer.getAddr())
                         .term(currentTerm)
+                        .leaderCommit(commitIndex) // 心跳时与跟随者同步 commit index
                         .build();
 
                 Request request = new Request(
