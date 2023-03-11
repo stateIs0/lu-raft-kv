@@ -70,12 +70,14 @@ public class RedisStateMachine implements StateMachine {
         try (Jedis jedis = jedisPool.getResource()) {
             Command command = logEntry.getCommand();
             if (command == null) {
-                throw new IllegalArgumentException("command can not be null, logEntry : " + logEntry.toString());
+                // 忽略空日志
+                log.warn("insert no-op log, logEntry={}", logEntry);
+                return;
             }
             String key = command.getKey();
             jedis.set(key.getBytes(), JSON.toJSONBytes(logEntry));
         } catch (Exception e) {
-            log.error(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -85,7 +87,7 @@ public class RedisStateMachine implements StateMachine {
         try (Jedis jedis = jedisPool.getResource()) {
             result = JSON.parseObject(jedis.get(key), LogEntry.class);
         } catch (Exception e) {
-            log.error("redis error ", e);
+            throw new RuntimeException(e);
         }
         return result;
     }
@@ -96,7 +98,7 @@ public class RedisStateMachine implements StateMachine {
         try (Jedis jedis = jedisPool.getResource()) {
             result = jedis.get(key);
         } catch (Exception e) {
-            log.error("redis error ", e);
+            throw new RuntimeException(e);
         }
         return result;
     }
@@ -106,7 +108,7 @@ public class RedisStateMachine implements StateMachine {
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.set(key, value);
         } catch (Exception e) {
-            log.error("redis error ", e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -115,7 +117,7 @@ public class RedisStateMachine implements StateMachine {
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.del(keys);
         } catch (Exception e) {
-            log.error("redis error ", e);
+            throw new RuntimeException(e);
         }
     }
 }

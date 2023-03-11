@@ -136,7 +136,7 @@ public class DefaultConsensus implements Consensus {
 
             // 够格
             if (param.getTerm() >= node.getCurrentTerm()) {
-                LOGGER.debug("node {} become FOLLOWER, currentTerm : {}, param Term : {}, param serverId",
+                LOGGER.debug("node {} become FOLLOWER, currentTerm : {}, param Term : {}, param serverId = {}",
                     node.peerSet.getSelf(), node.currentTerm, param.getTerm(), param.getServerId());
                 // 认怂
                 node.status = NodeStatus.FOLLOWER;

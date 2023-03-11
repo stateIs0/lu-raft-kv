@@ -45,9 +45,7 @@ public class DefaultStateMachine implements StateMachine {
     private DefaultStateMachine() {
         dbDir = "./rocksDB-raft/" + System.getProperty("serverPort");
 
-        if (stateMachineDir == null) {
-            stateMachineDir = dbDir + "/stateMachine";
-        }
+        stateMachineDir = dbDir + "/stateMachine";
         RocksDB.loadLibrary();
 
         File file = new File(stateMachineDir);
@@ -97,9 +95,8 @@ public class DefaultStateMachine implements StateMachine {
             }
             return JSON.parseObject(result, LogEntry.class);
         } catch (RocksDBException e) {
-            log.error(e.getMessage());
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     @Override
@@ -110,7 +107,7 @@ public class DefaultStateMachine implements StateMachine {
                 return new String(bytes);
             }
         } catch (RocksDBException e) {
-            log.error(e.getMessage());
+            throw new RuntimeException(e);
         }
         return "";
     }
@@ -120,7 +117,7 @@ public class DefaultStateMachine implements StateMachine {
         try {
             machineDb.put(key.getBytes(), value.getBytes());
         } catch (RocksDBException e) {
-            log.error(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -131,7 +128,7 @@ public class DefaultStateMachine implements StateMachine {
                 machineDb.delete(s.getBytes());
             }
         } catch (RocksDBException e) {
-            log.error(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -143,12 +140,13 @@ public class DefaultStateMachine implements StateMachine {
 
             if (command == null) {
                 // 忽略空日志
+                log.warn("insert no-op log, logEntry={}", logEntry);
                 return;
             }
             String key = command.getKey();
             machineDb.put(key.getBytes(), JSON.toJSONBytes(logEntry));
         } catch (RocksDBException e) {
-            log.error(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 

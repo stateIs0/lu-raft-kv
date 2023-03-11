@@ -63,7 +63,7 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
     /** 上次一心跳时间戳 */
     public volatile long preHeartBeatTime = 0;
     /** 心跳间隔基数 */
-    public final long heartBeatTick = 5 * 1000;
+    public final long heartBeatTick = 5 * 100;
 
 
     private HeartBeatTask heartBeatTask = new HeartBeatTask();
