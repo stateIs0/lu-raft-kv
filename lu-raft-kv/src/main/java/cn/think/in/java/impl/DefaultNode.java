@@ -590,11 +590,10 @@ public class DefaultNode implements Node, ClusterMembershipChanges {
 
             log.info("futureArrayList.size() : {}", futureArrayList.size());
             // 等待结果.
-            for (Future future : futureArrayList) {
+            for (Future<RvoteResult> future : futureArrayList) {
                 RaftThreadPool.submit(() -> {
                     try {
-                        @SuppressWarnings("unchecked")
-                        RvoteResult result = (RvoteResult) future.get(3000, MILLISECONDS);
+                        RvoteResult result = future.get(3000, MILLISECONDS);
                         if (result == null) {
                             return -1;
                         }

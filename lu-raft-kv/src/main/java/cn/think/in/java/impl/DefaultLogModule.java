@@ -51,7 +51,7 @@ public class DefaultLogModule implements LogModule {
 
     public final static byte[] LAST_INDEX_KEY = "LAST_INDEX_KEY".getBytes();
 
-    ReentrantLock lock = new ReentrantLock();
+    private ReentrantLock lock = new ReentrantLock();
 
     private DefaultLogModule() {
         if (dbDir == null) {
@@ -108,8 +108,12 @@ public class DefaultLogModule implements LogModule {
     public void write(LogEntry logEntry) {
 
         boolean success = false;
+        boolean result;
         try {
-            lock.tryLock(3000, MILLISECONDS);
+            result = lock.tryLock(3000, MILLISECONDS);
+            if (!result) {
+                throw new RuntimeException("write fail, tryLock fail.");
+            }
             logEntry.setIndex(getLastIndex() + 1);
             logDb.put(logEntry.getIndex().toString().getBytes(), JSON.toJSONBytes(logEntry));
             success = true;
@@ -143,8 +147,12 @@ public class DefaultLogModule implements LogModule {
     public void removeOnStartIndex(Long startIndex) {
         boolean success = false;
         int count = 0;
+        boolean tryLock;
         try {
-            lock.tryLock(3000, MILLISECONDS);
+            tryLock = lock.tryLock(3000, MILLISECONDS);
+            if (!tryLock) {
+                throw new RuntimeException("tryLock fail, removeOnStartIndex fail");
+            }
             for (long i = startIndex; i <= getLastIndex(); i++) {
                 logDb.delete(String.valueOf(i).getBytes());
                 ++count;
