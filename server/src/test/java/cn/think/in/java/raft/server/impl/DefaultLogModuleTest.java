@@ -16,13 +16,13 @@ limitations under the License.
  */
 package cn.think.in.java.raft.server.impl;
 
+import cn.think.in.java.raft.common.entity.Command;
+import cn.think.in.java.raft.common.entity.LogEntry;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import raft.server.entity.Command;
-import raft.server.entity.LogEntry;
 
 
 /**
