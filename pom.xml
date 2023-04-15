@@ -1,95 +1,134 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>cn.think.in.java</groupId>
-  <artifactId>lu-raft-parent</artifactId>
-  <packaging>pom</packaging>
-  <version>1.0-RELEASE</version>
+    <groupId>cn.think.in.java</groupId>
+    <artifactId>lu-raft-parent</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0-RELEASE</version>
 
-  <modules>
-    <module>lu-raft-kv</module>
-  </modules>
+    <modules>
+        <module>common</module>
+        <module>server</module>
+        <module>client</module>
+    </modules>
 
-  <dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.26</version>
+        </dependency>
+    </dependencies>
 
-    <!-- 实现lsf4j接口并整合 -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.25</version>
-    </dependency>
+    <dependencyManagement>
+        <dependencies>
 
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <version>1.7.21</version>
-    </dependency>
+            <dependency>
+                <groupId>cn.think.in.java</groupId>
+                <artifactId>server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.think.in.java</groupId>
+                <artifactId>client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.think.in.java</groupId>
+                <artifactId>common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.7.25</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>1.7.21</version>
+            </dependency>
 
 
-    <!-- RPC transport -->
-    <dependency>
-      <groupId>com.alipay.sofa</groupId>
-      <artifactId>bolt</artifactId>
-      <version>1.6.4</version>
-      <exclusions>
-        <exclusion>
-          <artifactId>slf4j-api</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+            <!-- RPC transport -->
+            <dependency>
+                <groupId>com.alipay.sofa</groupId>
+                <artifactId>bolt</artifactId>
+                <version>1.6.4</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>slf4j-api</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
 
-    <!-- vm db -->
-    <dependency>
-      <groupId>redis.clients</groupId>
-      <artifactId>jedis</artifactId>
-      <version>2.9.0</version>
-    </dependency>
+            <!-- vm db -->
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>2.9.0</version>
+            </dependency>
 
-    <!-- serializer -->
-    <dependency>
-      <groupId>com.alibaba</groupId>
-      <artifactId>fastjson</artifactId>
-      <version>1.2.83</version>
-    </dependency>
+            <!-- serializer -->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>1.2.83</version>
+            </dependency>
 
-    <!-- lombok get set-->
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <version>1.18.2</version>
-    </dependency>
+            <!-- lombok get set-->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.2</version>
+            </dependency>
 
-    <!-- guava -->
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>31.1-jre</version>
-    </dependency>
+            <!-- guava -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>31.1-jre</version>
+            </dependency>
 
-    <dependency>
-      <groupId>com.alipay.sofa</groupId>
-      <artifactId>hessian</artifactId>
-      <version>3.3.6</version>
-    </dependency>
-  </dependencies>
+            <dependency>
+                <groupId>com.alipay.sofa</groupId>
+                <artifactId>hessian</artifactId>
+                <version>3.3.6</version>
+            </dependency>
 
-  <build>
-    <finalName>lu-raft</finalName>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>8</source>
-          <target>8</target>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+            <!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni
+      http://172.20.61.182:18326/admin/browse.jsp?JMSDestination=Consumer.foot_stone_test.VirtualTopic.foot_stone_flow_change
+      -->
+            <dependency>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <version>5.14.3</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <finalName>lu-raft</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 
 </project>
