@@ -31,6 +31,9 @@
 
 
 ## quick start
+
+🔥🔥🔥🔥🔥 注意：该项目仅支持 oracle jdk8 启动。
+
 #### 验证 "leader 选举"
 
 1. 在 idea 中配置 5 个 application 启动项,配置 main 类为 RaftNodeBootStrap 类, 加入 -DserverPort=8775 -DserverPort=8776 -DserverPort=8777 -DserverPort=8778 -DserverPort=8779 
@@ -42,6 +45,8 @@
 #### 验证"日志复制"
 
 ##### 正常状态下
+
+
 
 1. 在 idea 中配置 5 个 application 启动项,配置 main 类为 RaftNodeBootStrap 类, 加入 -DserverPort=8775 -DserverPort=8776 -DserverPort=8777 -DserverPort=8778 -DserverPort=8779 
 2. 依次启动 5 个 RaftNodeBootStrap 节点, 端口分别是 8775，8776， 8777, 8778, 8779.
