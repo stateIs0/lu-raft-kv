@@ -2,15 +2,27 @@
 <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
 
-  <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
-    <layout class="org.apache.log4j.PatternLayout">
-      <param name="ConversionPattern" value="%d %t %5p [%c:%M:%L] - %m%n"/>
-    </layout>
-  </appender>
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %t %5p [%c:%M:%L] - %m%n"/>
+        </layout>
+    </appender>
 
-  <root>
-    <level value="INFO"/>
-    <appender-ref ref="CONSOLE"/>
-  </root>
+    <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
+        <param name="File" value="raft-server-logs/raft-server.log"/>
+        <param name="Append" value="true"/>
+        <param name="MaxFileSize" value="10MB"/>
+        <param name="MaxBackupIndex" value="10"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %t %5p [%c:%M:%L] - %m%n"/>
+        </layout>
+    </appender>
+
+
+    <root>
+        <level value="INFO"/>
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
 
 </log4j:configuration>

@@ -19,32 +19,31 @@ package cn.think.in.java.raft.server.current;
 import java.util.concurrent.*;
 
 /**
- *
  * @author 莫那·鲁道
  */
 public class RaftThreadPool {
 
-    private static int cup = Runtime.getRuntime().availableProcessors();
-    private static int maxPoolSize = cup * 2;
-    private static final int queueSize = 1024;
-    private static final long keepTime = 1000 * 60;
-    private static TimeUnit keepTimeUnit = TimeUnit.MILLISECONDS;
+    private static final int CUP = Runtime.getRuntime().availableProcessors();
+    private static final int MAX_POOL_SIZE = CUP * 2;
+    private static final int QUEUE_SIZE = 1024;
+    private static final long KEEP_TIME = 1000 * 60;
+    private static final TimeUnit KEEP_TIME_UNIT = TimeUnit.MILLISECONDS;
 
     private static ScheduledExecutorService ss = getScheduled();
     private static ThreadPoolExecutor te = getThreadPool();
 
     private static ThreadPoolExecutor getThreadPool() {
         return new RaftThreadPoolExecutor(
-            cup,
-            maxPoolSize,
-            keepTime,
-            keepTimeUnit,
-            new LinkedBlockingQueue<>(queueSize),
-            new NameThreadFactory());
+                CUP,
+                MAX_POOL_SIZE,
+                KEEP_TIME,
+                KEEP_TIME_UNIT,
+                new LinkedBlockingQueue<>(QUEUE_SIZE),
+                new NameThreadFactory());
     }
 
     private static ScheduledExecutorService getScheduled() {
-        return new ScheduledThreadPoolExecutor(cup, new NameThreadFactory());
+        return new ScheduledThreadPoolExecutor(CUP, new NameThreadFactory());
     }
 
 

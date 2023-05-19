@@ -62,7 +62,6 @@
                 <version>1.7.21</version>
             </dependency>
 
-
             <!-- RPC transport -->
             <dependency>
                 <groupId>com.alipay.sofa</groupId>

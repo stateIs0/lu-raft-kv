@@ -16,22 +16,20 @@ limitations under the License.
  */
 package cn.think.in.java.raft.server.current;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- *
  * @author 莫那·鲁道
  */
+@Slf4j
 public class RaftThread extends Thread {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RaftThread.class);
-    private static final UncaughtExceptionHandler uncaughtExceptionHandler = (t, e)
-        -> LOGGER.warn("Exception occurred from thread {}", t.getName(), e);
+    private static final UncaughtExceptionHandler UNCAUGHT_EXCEPTION_HANDLER = (t, e)
+            -> log.warn("Exception occurred from thread {}", t.getName(), e);
 
-    public RaftThread(String threadName,  Runnable r) {
+    public RaftThread(String threadName, Runnable r) {
         super(r, threadName);
-        setUncaughtExceptionHandler(uncaughtExceptionHandler);
+        setUncaughtExceptionHandler(UNCAUGHT_EXCEPTION_HANDLER);
     }
 
 }

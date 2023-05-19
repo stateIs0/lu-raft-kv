@@ -8,9 +8,21 @@
     </layout>
   </appender>
 
+  <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
+    <param name="File" value="raft-client-logs/raft-client.log"/>
+    <param name="Append" value="true"/>
+    <param name="MaxFileSize" value="10MB"/>
+    <param name="MaxBackupIndex" value="10"/>
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%d %t %5p [%c:%M:%L] - %m%n"/>
+    </layout>
+  </appender>
+
+
   <root>
     <level value="INFO"/>
     <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
   </root>
 
 </log4j:configuration>
