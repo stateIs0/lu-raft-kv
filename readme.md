@@ -33,6 +33,7 @@
 ## quick start
 
 🔥🔥🔥🔥🔥 注意：该项目仅支持 oracle jdk8 启动。
+🔴🔴🔴🔴🔴 注意：idea 需要安装 lombok 插件。
 
 #### 验证 "leader 选举"
 
