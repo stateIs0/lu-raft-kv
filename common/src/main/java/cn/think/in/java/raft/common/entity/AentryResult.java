@@ -39,16 +39,7 @@ public class AentryResult implements Serializable {
     /** 跟随者包含了匹配上 prevLogIndex 和 prevLogTerm 的日志时为真  */
     boolean success;
 
-    public AentryResult(long term) {
-        this.term = term;
-    }
-
     public AentryResult(boolean success) {
-        this.success = success;
-    }
-
-    public AentryResult(long term, boolean success) {
-        this.term = term;
         this.success = success;
     }
 

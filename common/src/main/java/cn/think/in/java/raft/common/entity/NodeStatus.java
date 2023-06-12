@@ -36,7 +36,7 @@ public interface NodeStatus {
             this.code = code;
         }
 
-        int code;
+        final int code;
 
         public static Enum value(int i) {
             for (Enum value : Enum.values()) {
