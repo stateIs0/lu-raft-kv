@@ -79,6 +79,6 @@
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=stateis0/lu-raft-kv&type=Date)](https://star-history.com/#stateis0/lu-raft-kv&Date)
+[![Star History Chart](https://starchart.cc/stateis0/lu-raft.svg)
 
 
