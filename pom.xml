@@ -106,7 +106,7 @@
             <dependency>
                 <groupId>com.alipay.sofa</groupId>
                 <artifactId>hessian</artifactId>
-                <version>3.3.6</version>
+                <version>3.5.5</version>
             </dependency>
 
             <!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni
